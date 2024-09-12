@@ -29,7 +29,7 @@ import { useNavigate } from "react-router-dom";
 import GrupoOperador from "./GrupoOperador";
 import VentaArticuloOperador from "./VentaArticuloOperador";
 import DespachoOperador from "./DespachoOperador";
-import StorageViewer from "../components/VentaPlaca";//VentaCliente //StorageViewer; // Importar el nuevo componente
+import StorageViewer from "./ClientesCrud";//VentaPlaca //StorageViewer; // Importar el nuevo componente
 import axios from "axios";
 
 const drawerWidth = 240;

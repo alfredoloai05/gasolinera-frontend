@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Fab,
   Modal,
   Box,
   TextField,
@@ -9,10 +8,9 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import LocalParkingIcon from "@mui/icons-material/LocalParking"; 
+import LocalParkingIcon from "@mui/icons-material/LocalParking";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 
@@ -28,32 +26,30 @@ const style = {
   p: 4,
 };
 
-function VentaCliente() {
+function VentaCliente({ cedulaInicial, onClienteEncontrado }) {
   const [cliente, setCliente] = useState(null);
   const [placas, setPlacas] = useState([]);
-  const [cedulaBuscar, setCedulaBuscar] = useState(""); // Cedula a buscar
+  const [cedulaBuscar, setCedulaBuscar] = useState(cedulaInicial || ""); 
   const [openAddModal, setOpenAddModal] = useState(false); 
-  const [openEditModal, setOpenEditModal] = useState(false); 
   const [openPlacasModal, setOpenPlacasModal] = useState(false); 
   const [newCliente, setNewCliente] = useState({
     nombre: "",
     apellido: "",
     correo: "",
     direccion: "",
-    cedula: cedulaBuscar, // Ya inicializado con la cédula buscada
-  });
-  const [editCliente, setEditCliente] = useState({
-    id: "",
-    nombre: "",
-    apellido: "",
-    correo: "",
-    direccion: "",
-    cedula: "",
+    cedula: cedulaBuscar,
   });
   const [newPlaca, setNewPlaca] = useState({
     numero: "",
     cedula_cliente: "",
   });
+
+  // Realizar búsqueda automática si se recibe una cédula del componente padre
+  useEffect(() => {
+    if (cedulaInicial) {
+      buscarClientePorCedula(cedulaInicial);
+    }
+  }, [cedulaInicial]);
 
   // Buscar cliente por cédula
   const buscarClientePorCedula = async (cedula) => {
@@ -62,10 +58,18 @@ function VentaCliente() {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setCliente(response.data);
-      fetchPlacasByCliente(response.data.cedula); // Cargar las placas del cliente encontrado
+      const placasCliente = await fetchPlacasByCliente(response.data.cedula); // Cargar las placas del cliente encontrado
+
+      // Devolver los datos del cliente y las placas al componente padre
+      onClienteEncontrado({ ...response.data, placas: placasCliente });
+      
+      if (placasCliente.length === 0) {
+        handleOpenPlacasModal(response.data);
+      }
+      
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        setCliente(null); // Cliente no encontrado
+        setCliente(null);
         handleOpenAddModal(); // Abrir modal para agregar nuevo cliente
       } else {
         console.error("Error al buscar cliente", error);
@@ -73,43 +77,29 @@ function VentaCliente() {
     }
   };
 
-  // Obtener las placas del cliente
+  // Obtener las placas del cliente y abrir el modal si no hay placas
   const fetchPlacasByCliente = async (cedula) => {
     try {
       const response = await axios.get(`http://localhost:5000/cliente/${cedula}/placas`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setPlacas(response.data);
+      return response.data;  // Devuelve las placas para pasarlas al padre
     } catch (error) {
       console.error("Error al cargar placas", error);
+      return [];
     }
   };
 
   const handleOpenAddModal = () => {
-    setNewCliente({ ...newCliente, cedula: cedulaBuscar }); // Iniciar el modal con la cédula ya ingresada
+    setNewCliente({ ...newCliente, cedula: cedulaBuscar }); 
     setOpenAddModal(true);
   };
   const handleCloseAddModal = () => setOpenAddModal(false);
 
-  const handleOpenEditModal = (cliente) => {
-    setEditCliente({
-      id: cliente.id,
-      nombre: cliente.nombre,
-      apellido: cliente.apellido,
-      correo: cliente.correo,
-      direccion: cliente.direccion,
-      cedula: cliente.cedula,
-    });
-    setOpenEditModal(true);
-  };
-  const handleCloseEditModal = () => setOpenEditModal(false);
-
   const handleOpenPlacasModal = (cliente) => {
-    if (cliente.cedula) { 
-      fetchPlacasByCliente(cliente.cedula); 
-      setNewPlaca({ numero: "", cedula_cliente: cliente.cedula });
-      setOpenPlacasModal(true);
-    }
+    setNewPlaca({ numero: "", cedula_cliente: cliente.cedula });
+    setOpenPlacasModal(true);
   };
 
   const handleClosePlacasModal = () => setOpenPlacasModal(false);
@@ -118,45 +108,18 @@ function VentaCliente() {
     setNewCliente({ ...newCliente, [e.target.name]: e.target.value });
   };
 
-  const handleEditClienteChange = (e) => {
-    setEditCliente({ ...editCliente, [e.target.name]: e.target.value });
-  };
-
-  // Crear un nuevo cliente y luego buscarlo
+  // Crear un nuevo cliente y luego abrir el modal de placas si no tiene
   const handleAddClienteSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/cliente", newCliente, {
+      const response = await axios.post("http://localhost:5000/cliente", newCliente, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
+      setCliente(response.data);
       handleCloseAddModal();
-      buscarClientePorCedula(newCliente.cedula); // Buscar y cargar el cliente recién creado
+      handleOpenPlacasModal(response.data); // Abrir el modal de placas tras crear cliente
     } catch (error) {
       console.error("Error al crear cliente", error);
-    }
-  };
-
-  const handleEditClienteSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.put(`http://localhost:5000/cliente/${editCliente.cedula}`, editCliente, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      handleCloseEditModal();
-      buscarClientePorCedula(editCliente.cedula); // Actualizar los datos del cliente editado
-    } catch (error) {
-      console.error("Error al actualizar cliente", error);
-    }
-  };
-
-  const handleDeleteCliente = async (cliente) => {
-    try {
-      await axios.delete(`http://localhost:5000/cliente/${cliente.cedula}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      setCliente(null);
-    } catch (error) {
-      console.error("Error al eliminar cliente", error);
     }
   };
 
@@ -166,20 +129,10 @@ function VentaCliente() {
       await axios.post("http://localhost:5000/placa", newPlaca, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      fetchPlacasByCliente(newPlaca.cedula_cliente);
+      await fetchPlacasByCliente(newPlaca.cedula_cliente);
+      handleClosePlacasModal(); // Cerrar modal tras añadir la placa
     } catch (error) {
       console.error("Error al crear placa", error);
-    }
-  };
-
-  const handleDeletePlaca = async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/placa/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      fetchPlacasByCliente(newPlaca.cedula_cliente);
-    } catch (error) {
-      console.error("Error al eliminar placa", error);
     }
   };
 
@@ -210,14 +163,6 @@ function VentaCliente() {
           <Typography variant="body1">Cédula: {cliente.cedula}</Typography>
           <Typography variant="body1">Correo: {cliente.correo}</Typography>
           <Typography variant="body1">Dirección: {cliente.direccion}</Typography>
-
-          {/* Acciones para Editar y Eliminar Cliente */}
-          <IconButton onClick={() => handleOpenEditModal(cliente)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton onClick={() => handleDeleteCliente(cliente)}>
-            <DeleteIcon />
-          </IconButton>
           <IconButton onClick={() => handleOpenPlacasModal(cliente)}>
             <LocalParkingIcon />
           </IconButton>
@@ -283,64 +228,6 @@ function VentaCliente() {
         </Box>
       </Modal>
 
-      {/* Modal para editar cliente */}
-      <Modal open={openEditModal} onClose={handleCloseEditModal}>
-        <Box sx={style} component="form" onSubmit={handleEditClienteSubmit}>
-          <Typography variant="h6" gutterBottom>
-            Editar Cliente
-          </Typography>
-          <TextField
-            label="Nombre"
-            name="nombre"
-            fullWidth
-            value={editCliente.nombre}
-            onChange={handleEditClienteChange}
-            margin="normal"
-            required
-          />
-          <TextField
-            label="Apellido"
-            name="apellido"
-            fullWidth
-            value={editCliente.apellido}
-            onChange={handleEditClienteChange}
-            margin="normal"
-            required
-          />
-          <TextField
-            label="Cédula"
-            name="cedula"
-            fullWidth
-            value={editCliente.cedula}
-            onChange={handleEditClienteChange}
-            margin="normal"
-            required
-            disabled // No se permite editar la cédula
-          />
-          <TextField
-            label="Correo"
-            name="correo"
-            fullWidth
-            value={editCliente.correo}
-            onChange={handleEditClienteChange}
-            margin="normal"
-            required
-          />
-          <TextField
-            label="Dirección"
-            name="direccion"
-            fullWidth
-            value={editCliente.direccion}
-            onChange={handleEditClienteChange}
-            margin="normal"
-            required
-          />
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
-            Guardar Cambios
-          </Button>
-        </Box>
-      </Modal>
-
       {/* Modal para gestionar placas */}
       <Modal open={openPlacasModal} onClose={handleClosePlacasModal}>
         <Box sx={style} component="form" onSubmit={handlePlacaSubmit}>
@@ -351,9 +238,6 @@ function VentaCliente() {
             placas.map((placa) => (
               <Box key={placa.id} display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body1">Placa: {placa.numero}</Typography>
-                <IconButton onClick={() => handleDeletePlaca(placa.id)}>
-                  <DeleteIcon />
-                </IconButton>
               </Box>
             ))
           ) : (

@@ -15,11 +15,13 @@ import {
   IconButton,
   InputAdornment,
 } from "@mui/material";
-import CameraAltIcon from "@mui/icons-material/CameraAlt"; // Importamos el ícono de la cámara
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import Simulador from "../components/Simulador";
 import Lados from "../components/Lados";
-import Escaner from "../components/Detector"; // Importar el componente de Escáner
+import Escaner from "../components/Detector"; // Importar el escáner
+import VentaCliente from "../components/VentaCliente"; // Importar VentaCliente para buscar cédula
 
 const getFechaActual = () => {
   const today = new Date();
@@ -33,10 +35,11 @@ function DespachoOperador() {
   const [ventasActivas, setVentasActivas] = useState([]);
   const [isVentaModalOpen, setIsVentaModalOpen] = useState(false);
   const [isMangueraModalOpen, setIsMangueraModalOpen] = useState(false);
-  const [isEscanerModalOpen, setIsEscanerModalOpen] = useState(false); // Modal para el escáner
+  const [isEscanerModalOpen, setIsEscanerModalOpen] = useState(false);
+  const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
   const [selectedManguera, setSelectedManguera] = useState(null);
   const [selectedLado, setSelectedLado] = useState(null);
-  const [clienteInfo, setClienteInfo] = useState({ nombre: "", apellido: "" }); // Datos del cliente
+  const [clienteInfo, setClienteInfo] = useState({ nombre: "", apellido: "", placas: [] });
   const [formasPago, setFormasPago] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [formData, setFormData] = useState({
@@ -67,6 +70,43 @@ function DespachoOperador() {
     } catch (error) {
       console.error("Error al cargar las formas de pago", error);
     }
+  };
+
+  const terminarSimulacion = (id, galones, total) => {
+    setVentasActivas((prevVentas) =>
+      prevVentas.map((venta) =>
+        venta.id === id
+          ? { ...venta, galones, total, simulacionTerminada: true }
+          : venta
+      )
+    );
+  };
+
+  const finalizarVenta = async (id, galones, total) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/venta_gasolina/${id}/finalizar`,
+        { galones, total, fecha: new Date() },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      cargarVentasActivas();
+    } catch (error) {
+      console.error("Error al finalizar la venta", error);
+    }
+  };
+
+ const abrirModalVenta = () => {
+    setFormData({
+      tipo_manguera: "",
+      cedula_cliente: "",
+      numero_placa: "",
+      servicio: servicios[0]?.tipo || "",
+      forma_pago: formasPago[0]?.tipo || "",
+      fecha: getFechaActual(),
+    });
+    setSelectedManguera(null);
+    setSelectedLado(null);
+    setIsVentaModalOpen(true);
   };
 
   const cargarServicios = async () => {
@@ -116,34 +156,13 @@ function DespachoOperador() {
       };
 
       setVentasActivas([...ventasActivas, nuevaVenta]);
-      setIsVentaModalOpen(false);
+      cerrarModalVenta();
     } catch (error) {
       console.error("Error al iniciar la venta", error);
     }
   };
 
-  const finalizarVenta = async (id, galones, total) => {
-    try {
-      await axios.put(
-        `http://localhost:5000/venta_gasolina/${id}/finalizar`,
-        { galones, total, fecha: new Date() },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-      cargarVentasActivas();
-    } catch (error) {
-      console.error("Error al finalizar la venta", error);
-    }
-  };
-
-  const terminarSimulacion = (id, galones, total) => {
-    setVentasActivas((prevVentas) =>
-      prevVentas.map((venta) =>
-        venta.id === id ? { ...venta, galones, total, simulacionTerminada: true } : venta
-      )
-    );
-  };
-
-  const abrirModalVenta = () => {
+  const cerrarModalVenta = () => {
     setFormData({
       tipo_manguera: "",
       cedula_cliente: "",
@@ -152,10 +171,42 @@ function DespachoOperador() {
       forma_pago: formasPago[0]?.tipo || "",
       fecha: getFechaActual(),
     });
-    setClienteInfo({ nombre: "", apellido: "" });
-    setSelectedManguera(null);
-    setSelectedLado(null);
-    setIsVentaModalOpen(true);
+    setClienteInfo({ nombre: "", apellido: "", placas: [] });
+    setIsVentaModalOpen(false);
+  };
+
+  const abrirEscanerYBuscarPlaca = () => {
+    setIsEscanerModalOpen(true);
+  };
+
+  const abrirBusquedaCliente = () => {
+    setIsClienteModalOpen(true);
+  };
+
+  // Maneja los datos del escáner
+  const manejarDatosEscaner = ({ placa, cedula, nombre, apellido }) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      numero_placa: placa,
+      cedula_cliente: cedula,
+    }));
+    setClienteInfo({ nombre, apellido, placas: [] });
+    setIsEscanerModalOpen(false);
+  };
+
+  // Maneja los datos del cliente, incluyendo las placas
+  const manejarDatosCliente = (clienteData) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      cedula_cliente: clienteData.cedula,
+      numero_placa: clienteData.placas.length > 0 ? clienteData.placas[0].numero : "",  // Selecciona la primera placa si existe
+    }));
+    setClienteInfo({
+      nombre: clienteData.nombre,
+      apellido: clienteData.apellido,
+      placas: clienteData.placas || [],  // Almacena las placas del cliente
+    });
+    setIsClienteModalOpen(false);  // Cerrar el modal de cliente
   };
 
   const handleChange = (e) => {
@@ -166,24 +217,6 @@ function DespachoOperador() {
     setSelectedManguera(manguera);
     setSelectedLado(lado);
     setIsMangueraModalOpen(false);
-  };
-
-  // Maneja los datos recibidos del escáner
-  const manejarDatosEscaner = ({ placa, cedula, nombre, apellido }) => {
-    setFormData({ ...formData, numero_placa: placa, cedula_cliente: cedula });
-    setClienteInfo({ nombre, apellido });
-    setIsEscanerModalOpen(false); // Cerrar el escáner automáticamente
-  };
-
-  // Abre el modal y busca la placa manualmente ingresada
-  const abrirEscanerYBuscarPlaca = () => {
-    if (formData.numero_placa) {
-      // Si ya hay una placa ingresada manualmente, la buscamos
-      manejarDatosEscaner({ placa: formData.numero_placa });
-    } else {
-      // Abrimos el modal del escáner
-      setIsEscanerModalOpen(true);
-    }
   };
 
   return (
@@ -236,7 +269,8 @@ function DespachoOperador() {
         Iniciar Nueva Venta
       </Button>
 
-      <Modal open={isVentaModalOpen} onClose={() => setIsVentaModalOpen(false)}>
+      {/* Modal para iniciar nueva venta */}
+      <Modal open={isVentaModalOpen} onClose={cerrarModalVenta}>
         <Box sx={{ ...modalStyle }}>
           <Typography variant="h6">
             Iniciar Nueva Venta {clienteInfo.nombre && `- ${clienteInfo.nombre} ${clienteInfo.apellido}`}
@@ -257,24 +291,52 @@ function DespachoOperador() {
             onChange={handleChange}
             fullWidth
             margin="normal"
-          />
-          <TextField
-            label="Número de Placa"
-            name="numero_placa"
-            value={formData.numero_placa}
-            onChange={handleChange}
-            fullWidth
-            margin="normal"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton onClick={abrirEscanerYBuscarPlaca}>
-                    <CameraAltIcon />
+                  <IconButton onClick={abrirBusquedaCliente}>
+                    <SearchIcon />
                   </IconButton>
                 </InputAdornment>
               ),
             }}
           />
+
+          {/* Si hay placas del cliente, las mostramos en un combo box */}
+          {clienteInfo.placas.length > 0 ? (
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Placa</InputLabel>
+              <Select
+                name="numero_placa"
+                value={formData.numero_placa}
+                onChange={handleChange}
+              >
+                {clienteInfo.placas.map((placa) => (
+                  <MenuItem key={placa.id} value={placa.numero}>
+                    {placa.numero}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            <TextField
+              label="Número de Placa"
+              name="numero_placa"
+              value={formData.numero_placa}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={abrirEscanerYBuscarPlaca}>
+                      <CameraAltIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
 
           <FormControl fullWidth margin="normal">
             <InputLabel>Servicio</InputLabel>
@@ -328,16 +390,25 @@ function DespachoOperador() {
         </Box>
       </Modal>
 
+      {/* Modal para seleccionar manguera */}
       <Modal open={isMangueraModalOpen} onClose={() => setIsMangueraModalOpen(false)}>
-        <Box sx={{ ...modalStyle }}>
+        <Box sx={{ ...modalStyle, overflowY: "auto", overflowX: "auto" }}>
           <Typography variant="h6">Seleccionar Manguera</Typography>
           <Lados onSeleccionManguera={handleSeleccionManguera} />
         </Box>
       </Modal>
 
+      {/* Modal para escanear placa */}
       <Modal open={isEscanerModalOpen} onClose={() => setIsEscanerModalOpen(false)}>
-        <Box sx={{ ...modalStyle, overflowY: "auto" }}>
-          <Escaner onDatosDetectados={manejarDatosEscaner} onClose={() => setIsEscanerModalOpen(false)} />
+        <Box sx={{ ...modalStyle, overflowY: "auto", overflowX: "auto" }}>
+          <Escaner onDatosDetectados={manejarDatosEscaner} placaManual={formData.numero_placa} />
+        </Box>
+      </Modal>
+
+      {/* Modal para buscar cliente por cédula */}
+      <Modal open={isClienteModalOpen} onClose={() => setIsClienteModalOpen(false)}>
+        <Box sx={{ ...modalStyle, overflowY: "auto", overflowX: "auto" }}>
+          <VentaCliente cedulaInicial={formData.cedula_cliente} onClienteEncontrado={manejarDatosCliente} />
         </Box>
       </Modal>
     </Box>
@@ -350,7 +421,8 @@ const modalStyle = {
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 400,
-  maxHeight: "90vh", // Permitir el scroll vertical
+  maxHeight: "90vh",
+  maxWidth: "90vw",
   bgcolor: "background.paper",
   boxShadow: 24,
   p: 4,
