@@ -6,13 +6,9 @@ import {
   TextField,
   Button,
   Typography,
-  IconButton,
   MenuItem,
-  Tooltip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CrudTable from "../components/CrudTable";
 import axios from "axios";
 
@@ -41,7 +37,7 @@ function DispensadorCrud() {
   const [openModal, setOpenModal] = useState({ grupo: false, dispensador: false, lado: false, manguera: false });
   const [editModal, setEditModal] = useState({ grupo: false, dispensador: false, lado: false, manguera: false });
 
-  const [newGrupo, setNewGrupo] = useState({ nombre: "", estado: "true" });
+  const [newGrupo, setNewGrupo] = useState({ nombre: "", estado: true });
   const [newDispensador, setNewDispensador] = useState({ nombre: "", id_grupo: "" });
   const [newLado, setNewLado] = useState({ nombre: "", id_dispensador: "" });
   const [newManguera, setNewManguera] = useState({ nombre: "", tipo_combustible: "", id_lado: "" });
@@ -51,7 +47,6 @@ function DispensadorCrud() {
   const [editLado, setEditLado] = useState({});
   const [editManguera, setEditManguera] = useState({});
 
-  // Fetch data for all entities
   const fetchData = async () => {
     try {
       const [gruposRes, dispensadoresRes, ladosRes, manguerasRes] = await Promise.all([
@@ -64,9 +59,9 @@ function DispensadorCrud() {
       setDispensadores(dispensadoresRes.data);
       setLados(ladosRes.data);
       setMangueras(manguerasRes.data);
-      setAvailableGrupos(gruposRes.data); // Save available groups
-      setAvailableDispensadores(dispensadoresRes.data); // Save available dispensers
-      setAvailableLados(ladosRes.data); // Save available sides
+      setAvailableGrupos(gruposRes.data); 
+      setAvailableDispensadores(dispensadoresRes.data); 
+      setAvailableLados(ladosRes.data); 
     } catch (error) {
       console.error("Error al cargar datos", error);
     }
@@ -76,7 +71,6 @@ function DispensadorCrud() {
     fetchData();
   }, []);
 
-  // Open/Close Modals
   const handleOpenModal = (type) => setOpenModal({ ...openModal, [type]: true });
   const handleCloseModal = (type) => setOpenModal({ ...openModal, [type]: false });
 
@@ -101,10 +95,14 @@ function DispensadorCrud() {
   };
   const handleCloseEditModal = (type) => setEditModal({ ...editModal, [type]: false });
 
-  // Handle Input Change
-  const handleChange = (setter) => (e) => setter((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (setter) => (e) => {
+    const { name, value } = e.target;
+    setter((prev) => ({
+      ...prev,
+      [name]: name === "estado" ? value === "true" : value, // Manejo de booleanos correctamente
+    }));
+  };
 
-  // Submit Functions for Creation
   const handleSubmit = async (e, type) => {
     e.preventDefault();
     let url, data;
@@ -137,7 +135,6 @@ function DispensadorCrud() {
     }
   };
 
-  // Submit Functions for Update
   const handleUpdate = async (e, type) => {
     e.preventDefault();
     let url, data, id;
@@ -174,7 +171,6 @@ function DispensadorCrud() {
     }
   };
 
-  // Render Modal Form
   const renderForm = (type, data, handleSubmit, handleChange) => (
     <Box sx={style} component="form" onSubmit={(e) => handleSubmit(e, type)}>
       <Typography variant="h6" component="h2" gutterBottom>

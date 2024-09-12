@@ -36,10 +36,10 @@ const drawerWidth = 240;
 
 function AdminPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [selectedPage, setSelectedPage] = useState("Administradores"); // Página inicial
+  const [selectedPage, setSelectedPage] = useState("Administradores");
   const navigate = useNavigate();
 
-  const usuario = localStorage.getItem("usuario"); // Obtener el usuario del localStorage
+  const usuario = localStorage.getItem("usuario"); 
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -49,7 +49,7 @@ function AdminPage() {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("usuario");
-    navigate("/login"); // Redireccionar a la página de login
+    navigate("/login"); 
   };
 
   const drawer = (
@@ -154,7 +154,7 @@ function AdminPage() {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          backgroundColor: "#1976d2", // Color azul similar al Material UI predeterminado
+          backgroundColor: "#1976d2", 
         }}
       >
         <Toolbar>
@@ -181,7 +181,7 @@ function AdminPage() {
         }}
         aria-label="mailbox folders"
       >
-        {/* Menu Drawer para mobile */}
+        {/*mobile */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -195,7 +195,7 @@ function AdminPage() {
           {drawer}
         </Drawer>
 
-        {/* Menu Drawer para desktop */}
+        {/*desktop */}
         <Drawer
           variant="permanent"
           sx={{
@@ -216,7 +216,7 @@ function AdminPage() {
           width: { sm: `calc(100% - ${drawerWidth}px)` },
         }}
       >
-        <Toolbar /> {/* Esto mantiene un espacio debajo del header */}
+        <Toolbar /> {}
         {renderPage()}
       </Box>
     </Box>

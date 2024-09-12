@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Fab,
   Modal,
@@ -13,7 +13,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocalParkingIcon from "@mui/icons-material/LocalParking"; 
-import CrudTable from "../components/CrudTable";
+import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 
 const style = {
@@ -28,20 +28,19 @@ const style = {
   p: 4,
 };
 
-function ClientesCrud() {
-  const [clientes, setClientes] = useState([]);
+function VentaCliente() {
+  const [cliente, setCliente] = useState(null);
   const [placas, setPlacas] = useState([]);
+  const [cedulaBuscar, setCedulaBuscar] = useState(""); // Cedula a buscar
   const [openAddModal, setOpenAddModal] = useState(false); 
   const [openEditModal, setOpenEditModal] = useState(false); 
   const [openPlacasModal, setOpenPlacasModal] = useState(false); 
-  const [currentCedulaCliente, setCurrentCedulaCliente] = useState(""); 
-
   const [newCliente, setNewCliente] = useState({
     nombre: "",
     apellido: "",
     correo: "",
     direccion: "",
-    cedula: "",
+    cedula: cedulaBuscar, // Ya inicializado con la cédula buscada
   });
   const [editCliente, setEditCliente] = useState({
     id: "",
@@ -56,36 +55,40 @@ function ClientesCrud() {
     cedula_cliente: "",
   });
 
-  const fetchClientes = async () => {
+  // Buscar cliente por cédula
+  const buscarClientePorCedula = async (cedula) => {
     try {
-      const response = await axios.get("http://localhost:5000/clientes", {
+      const response = await axios.get(`http://localhost:5000/cliente/cedula/${cedula}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      setClientes(response.data);
+      setCliente(response.data);
+      fetchPlacasByCliente(response.data.cedula); // Cargar las placas del cliente encontrado
     } catch (error) {
-      console.error("Error al cargar clientes", error);
+      if (error.response && error.response.status === 404) {
+        setCliente(null); // Cliente no encontrado
+        handleOpenAddModal(); // Abrir modal para agregar nuevo cliente
+      } else {
+        console.error("Error al buscar cliente", error);
+      }
     }
   };
 
+  // Obtener las placas del cliente
   const fetchPlacasByCliente = async (cedula) => {
     try {
-      const response = await axios.get(
-        `http://localhost:5000/cliente/${cedula}/placas`,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
+      const response = await axios.get(`http://localhost:5000/cliente/${cedula}/placas`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
       setPlacas(response.data);
     } catch (error) {
       console.error("Error al cargar placas", error);
     }
   };
 
-  useEffect(() => {
-    fetchClientes();
-  }, []);
-
-  const handleOpenAddModal = () => setOpenAddModal(true);
+  const handleOpenAddModal = () => {
+    setNewCliente({ ...newCliente, cedula: cedulaBuscar }); // Iniciar el modal con la cédula ya ingresada
+    setOpenAddModal(true);
+  };
   const handleCloseAddModal = () => setOpenAddModal(false);
 
   const handleOpenEditModal = (cliente) => {
@@ -103,68 +106,55 @@ function ClientesCrud() {
 
   const handleOpenPlacasModal = (cliente) => {
     if (cliente.cedula) { 
-      setCurrentCedulaCliente(cliente.cedula); 
       fetchPlacasByCliente(cliente.cedula); 
-      setNewPlaca({ numero: "", cedula_cliente: cliente.cedula }); 
+      setNewPlaca({ numero: "", cedula_cliente: cliente.cedula });
       setOpenPlacasModal(true);
-    } else {
-      console.error("La cédula del cliente no está definida");
     }
   };
 
   const handleClosePlacasModal = () => setOpenPlacasModal(false);
 
-  const handleChange = (e) => {
+  const handleAddClienteChange = (e) => {
     setNewCliente({ ...newCliente, [e.target.name]: e.target.value });
   };
 
-  const handleEditChange = (e) => {
+  const handleEditClienteChange = (e) => {
     setEditCliente({ ...editCliente, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  // Crear un nuevo cliente y luego buscarlo
+  const handleAddClienteSubmit = async (e) => {
     e.preventDefault();
     try {
       await axios.post("http://localhost:5000/cliente", newCliente, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      fetchClientes();
       handleCloseAddModal();
-      setNewCliente({
-        nombre: "",
-        apellido: "",
-        correo: "",
-        direccion: "",
-        cedula: "",
-      });
+      buscarClientePorCedula(newCliente.cedula); // Buscar y cargar el cliente recién creado
     } catch (error) {
       console.error("Error al crear cliente", error);
     }
   };
 
-  const handleEditSubmit = async (e) => {
+  const handleEditClienteSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(
-        `http://localhost:5000/cliente/${editCliente.cedula}`,
-        editCliente,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-      fetchClientes();
+      await axios.put(`http://localhost:5000/cliente/${editCliente.cedula}`, editCliente, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
       handleCloseEditModal();
+      buscarClientePorCedula(editCliente.cedula); // Actualizar los datos del cliente editado
     } catch (error) {
       console.error("Error al actualizar cliente", error);
     }
   };
 
-  const handleDelete = async (cliente) => {
+  const handleDeleteCliente = async (cliente) => {
     try {
       await axios.delete(`http://localhost:5000/cliente/${cliente.cedula}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      fetchClientes();
+      setCliente(null);
     } catch (error) {
       console.error("Error al eliminar cliente", error);
     }
@@ -176,8 +166,7 @@ function ClientesCrud() {
       await axios.post("http://localhost:5000/placa", newPlaca, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      fetchPlacasByCliente(newPlaca.cedula_cliente); 
-      setNewPlaca({ numero: "", cedula_cliente: newPlaca.cedula_cliente });
+      fetchPlacasByCliente(newPlaca.cedula_cliente);
     } catch (error) {
       console.error("Error al crear placa", error);
     }
@@ -188,7 +177,7 @@ function ClientesCrud() {
       await axios.delete(`http://localhost:5000/placa/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      fetchPlacasByCliente(currentCedulaCliente); 
+      fetchPlacasByCliente(newPlaca.cedula_cliente);
     } catch (error) {
       console.error("Error al eliminar placa", error);
     }
@@ -196,50 +185,59 @@ function ClientesCrud() {
 
   return (
     <div>
-      <h2>CRUD de Clientes</h2>
+      <h2>Buscar Cliente por Cédula</h2>
+      <Box sx={{ display: "flex", mb: 2 }}>
+        <TextField
+          label="Cédula"
+          value={cedulaBuscar}
+          onChange={(e) => setCedulaBuscar(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
+        <Tooltip title="Buscar Cliente">
+          <IconButton onClick={() => buscarClientePorCedula(cedulaBuscar)}>
+            <SearchIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
-      <Fab
-        color="primary"
-        aria-label="add"
-        onClick={handleOpenAddModal}
-        style={{ marginBottom: "20px" }}
-      >
-        <AddIcon />
-      </Fab>
+      {/* Mostrar cliente encontrado o modal para crear nuevo */}
+      {cliente ? (
+        <div>
+          <Typography variant="h6">
+            {cliente.nombre} {cliente.apellido}
+          </Typography>
+          <Typography variant="body1">Cédula: {cliente.cedula}</Typography>
+          <Typography variant="body1">Correo: {cliente.correo}</Typography>
+          <Typography variant="body1">Dirección: {cliente.direccion}</Typography>
 
-      <CrudTable
-        columns={[
-          { title: "Cédula", field: "cedula" }, 
-          { title: "Nombre", field: "nombre" },
-          { title: "Apellido", field: "apellido" },
-          { title: "Correo", field: "correo" },
-          { title: "Dirección", field: "direccion" },
-        ]}
-        data={clientes}
-        onEdit={handleOpenEditModal}
-        onDelete={handleDelete}
-        actions={[
-          {
-            icon: () => <LocalParkingIcon />,
-            tooltip: "Gestionar Placas",
-            onClick: (event, rowData) => handleOpenPlacasModal(rowData), 
-          },
-        ]}
-      />
+          {/* Acciones para Editar y Eliminar Cliente */}
+          <IconButton onClick={() => handleOpenEditModal(cliente)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton onClick={() => handleDeleteCliente(cliente)}>
+            <DeleteIcon />
+          </IconButton>
+          <IconButton onClick={() => handleOpenPlacasModal(cliente)}>
+            <LocalParkingIcon />
+          </IconButton>
+        </div>
+      ) : (
+        <Typography variant="body1">No se encontró cliente.</Typography>
+      )}
 
       {/* Modal para agregar nuevo cliente */}
-      <Modal open={openAddModal} onClose={handleCloseAddModal} aria-labelledby="modal-modal-title">
-        <Box sx={style} component="form" onSubmit={handleSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+      <Modal open={openAddModal} onClose={handleCloseAddModal}>
+        <Box sx={style} component="form" onSubmit={handleAddClienteSubmit}>
+          <Typography variant="h6" gutterBottom>
             Agregar Nuevo Cliente
           </Typography>
-
           <TextField
             label="Nombre"
             name="nombre"
             fullWidth
             value={newCliente.nombre}
-            onChange={handleChange}
+            onChange={handleAddClienteChange}
             margin="normal"
             required
           />
@@ -248,7 +246,7 @@ function ClientesCrud() {
             name="apellido"
             fullWidth
             value={newCliente.apellido}
-            onChange={handleChange}
+            onChange={handleAddClienteChange}
             margin="normal"
             required
           />
@@ -257,7 +255,7 @@ function ClientesCrud() {
             name="cedula"
             fullWidth
             value={newCliente.cedula}
-            onChange={handleChange}
+            onChange={handleAddClienteChange}
             margin="normal"
             required
           />
@@ -266,7 +264,7 @@ function ClientesCrud() {
             name="correo"
             fullWidth
             value={newCliente.correo}
-            onChange={handleChange}
+            onChange={handleAddClienteChange}
             margin="normal"
             required
           />
@@ -275,36 +273,28 @@ function ClientesCrud() {
             name="direccion"
             fullWidth
             value={newCliente.direccion}
-            onChange={handleChange}
+            onChange={handleAddClienteChange}
             margin="normal"
             required
           />
-
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 2 }}
-          >
+          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
             Agregar
           </Button>
         </Box>
       </Modal>
 
       {/* Modal para editar cliente */}
-      <Modal open={openEditModal} onClose={handleCloseEditModal} aria-labelledby="modal-modal-title">
-        <Box sx={style} component="form" onSubmit={handleEditSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+      <Modal open={openEditModal} onClose={handleCloseEditModal}>
+        <Box sx={style} component="form" onSubmit={handleEditClienteSubmit}>
+          <Typography variant="h6" gutterBottom>
             Editar Cliente
           </Typography>
-
           <TextField
             label="Nombre"
             name="nombre"
             fullWidth
             value={editCliente.nombre}
-            onChange={handleEditChange}
+            onChange={handleEditClienteChange}
             margin="normal"
             required
           />
@@ -313,7 +303,7 @@ function ClientesCrud() {
             name="apellido"
             fullWidth
             value={editCliente.apellido}
-            onChange={handleEditChange}
+            onChange={handleEditClienteChange}
             margin="normal"
             required
           />
@@ -322,16 +312,17 @@ function ClientesCrud() {
             name="cedula"
             fullWidth
             value={editCliente.cedula}
-            onChange={handleEditChange}
+            onChange={handleEditClienteChange}
             margin="normal"
             required
+            disabled // No se permite editar la cédula
           />
           <TextField
             label="Correo"
             name="correo"
             fullWidth
             value={editCliente.correo}
-            onChange={handleEditChange}
+            onChange={handleEditClienteChange}
             margin="normal"
             required
           />
@@ -340,33 +331,25 @@ function ClientesCrud() {
             name="direccion"
             fullWidth
             value={editCliente.direccion}
-            onChange={handleEditChange}
+            onChange={handleEditClienteChange}
             margin="normal"
             required
           />
-
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 2 }}
-          >
+          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
             Guardar Cambios
           </Button>
         </Box>
       </Modal>
 
       {/* Modal para gestionar placas */}
-      <Modal open={openPlacasModal} onClose={handleClosePlacasModal} aria-labelledby="modal-placas-title">
+      <Modal open={openPlacasModal} onClose={handleClosePlacasModal}>
         <Box sx={style} component="form" onSubmit={handlePlacaSubmit}>
-          <Typography id="modal-placas-title" variant="h6" component="h2" gutterBottom>
-            Gestionar Placas del cliente con cédula {currentCedulaCliente}
+          <Typography variant="h6" gutterBottom>
+            Gestionar Placas del Cliente
           </Typography>
-
           {placas.length > 0 ? (
             placas.map((placa) => (
-              <Box key={placa.id} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+              <Box key={placa.id} display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body1">Placa: {placa.numero}</Typography>
                 <IconButton onClick={() => handleDeletePlaca(placa.id)}>
                   <DeleteIcon />
@@ -374,11 +357,8 @@ function ClientesCrud() {
               </Box>
             ))
           ) : (
-            <Typography variant="body2" color="textSecondary">
-              No hay placas asociadas a este cliente.
-            </Typography>
+            <Typography variant="body2">No hay placas asociadas.</Typography>
           )}
-
           <TextField
             label="Nueva Placa"
             name="numero"
@@ -388,14 +368,7 @@ function ClientesCrud() {
             margin="normal"
             required
           />
-
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 2 }}
-          >
+          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
             Agregar Placa
           </Button>
         </Box>
@@ -404,4 +377,4 @@ function ClientesCrud() {
   );
 }
 
-export default ClientesCrud;
+export default VentaCliente;
