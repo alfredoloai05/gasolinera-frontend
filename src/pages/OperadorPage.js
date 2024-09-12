@@ -29,7 +29,7 @@ import { useNavigate } from "react-router-dom";
 import GrupoOperador from "./GrupoOperador";
 import VentaArticuloOperador from "./VentaArticuloOperador";
 import DespachoOperador from "./DespachoOperador";
-import StorageViewer from "./ClientesCrud";//VentaPlaca //StorageViewer; // Importar el nuevo componente
+import ClientesCrud from "./ClientesCrud";//VentaPlaca //StorageViewer; // Importar el nuevo componente
 import axios from "axios";
 
 const drawerWidth = 240;
@@ -141,11 +141,11 @@ function OperadorPage() {
         </ListItem>
 
         {/* Opción Storage */}
-        <ListItem button onClick={() => setSelectedPage("Storage")}>
+        <ListItem button onClick={() => setSelectedPage("Clientes")}>
           <ListItemIcon>
             <StorageIcon />
           </ListItemIcon>
-          <ListItemText primary="Storage" />
+          <ListItemText primary="Clientes" />
         </ListItem>
 
         {/* Opción Cerrar Sesión */}
@@ -167,8 +167,8 @@ function OperadorPage() {
         return <VentaArticuloOperador />;
       case "DespachoOperador":
         return <DespachoOperador />;
-      case "Storage":
-        return <StorageViewer />; // Mostrar el componente de Storage
+      case "Clientes":
+        return <ClientesCrud />; // Mostrar el componente de Storage
       default:
         return <GrupoOperador />;
     }

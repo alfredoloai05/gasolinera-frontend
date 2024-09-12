@@ -31,10 +31,13 @@ const style = {
 function ClientesCrud() {
   const [clientes, setClientes] = useState([]);
   const [placas, setPlacas] = useState([]);
+  const [filteredClientes, setFilteredClientes] = useState([]); // Para almacenar el resultado de búsqueda
   const [openAddModal, setOpenAddModal] = useState(false); 
   const [openEditModal, setOpenEditModal] = useState(false); 
   const [openPlacasModal, setOpenPlacasModal] = useState(false); 
   const [currentCedulaCliente, setCurrentCedulaCliente] = useState(""); 
+  const [searchCedula, setSearchCedula] = useState(""); // Valor de búsqueda por cédula
+  const [searchPlaca, setSearchPlaca] = useState(""); // Valor de búsqueda por placa
 
   const [newCliente, setNewCliente] = useState({
     nombre: "",
@@ -62,6 +65,7 @@ function ClientesCrud() {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setClientes(response.data);
+      setFilteredClientes(response.data); // Mostrar todos inicialmente
     } catch (error) {
       console.error("Error al cargar clientes", error);
     }
@@ -84,6 +88,42 @@ function ClientesCrud() {
   useEffect(() => {
     fetchClientes();
   }, []);
+
+  const handleSearchByCedula = async () => {
+    if (searchCedula.trim() !== "") {
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/cliente/cedula/${searchCedula}`,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          }
+        );
+        setFilteredClientes([response.data]); // Mostrar solo el cliente encontrado
+      } catch (error) {
+        console.error("Error al buscar cliente por cédula", error);
+      }
+    } else {
+      setFilteredClientes(clientes); // Mostrar todos si no hay búsqueda
+    }
+  };
+
+  const handleSearchByPlaca = async () => {
+    if (searchPlaca.trim() !== "") {
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/placa/${searchPlaca}/cliente`,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          }
+        );
+        setFilteredClientes([response.data]); // Mostrar solo el cliente asociado a la placa
+      } catch (error) {
+        console.error("Error al buscar cliente por placa", error);
+      }
+    } else {
+      setFilteredClientes(clientes); // Mostrar todos si no hay búsqueda
+    }
+  };
 
   const handleOpenAddModal = () => setOpenAddModal(true);
   const handleCloseAddModal = () => setOpenAddModal(false);
@@ -198,6 +238,34 @@ function ClientesCrud() {
     <div>
       <h2>CRUD de Clientes</h2>
 
+      {/* Búsqueda por cédula */}
+      <Box sx={{ display: "flex", mb: 2 }}>
+        <TextField
+          label="Buscar por Cédula"
+          value={searchCedula}
+          onChange={(e) => setSearchCedula(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
+        <Button variant="contained" onClick={handleSearchByCedula} sx={{ ml: 2 }}>
+          Buscar
+        </Button>
+      </Box>
+
+      {/* Búsqueda por placa */}
+      <Box sx={{ display: "flex", mb: 2 }}>
+        <TextField
+          label="Buscar por Placa"
+          value={searchPlaca}
+          onChange={(e) => setSearchPlaca(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
+        <Button variant="contained" onClick={handleSearchByPlaca} sx={{ ml: 2 }}>
+          Buscar
+        </Button>
+      </Box>
+
       <Fab
         color="primary"
         aria-label="add"
@@ -215,7 +283,7 @@ function ClientesCrud() {
           { title: "Correo", field: "correo" },
           { title: "Dirección", field: "direccion" },
         ]}
-        data={clientes}
+        data={filteredClientes}  // Se muestra el resultado filtrado
         onEdit={handleOpenEditModal}
         onDelete={handleDelete}
         actions={[
