@@ -12,27 +12,31 @@ import {
   Select,
   FormControl,
   InputLabel,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
+import CameraAltIcon from "@mui/icons-material/CameraAlt"; // Importamos el ícono de la cámara
 import axios from "axios";
 import Simulador from "../components/Simulador";
 import Lados from "../components/Lados";
+import Escaner from "../components/Detector"; // Importar el componente de Escáner
 
-  // Obtener la fecha actual en formato YYYY-MM-DD
-  const getFechaActual = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+const getFechaActual = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 function DespachoOperador() {
   const [ventasActivas, setVentasActivas] = useState([]);
   const [isVentaModalOpen, setIsVentaModalOpen] = useState(false);
   const [isMangueraModalOpen, setIsMangueraModalOpen] = useState(false);
+  const [isEscanerModalOpen, setIsEscanerModalOpen] = useState(false); // Modal para el escáner
   const [selectedManguera, setSelectedManguera] = useState(null);
   const [selectedLado, setSelectedLado] = useState(null);
-
+  const [clienteInfo, setClienteInfo] = useState({ nombre: "", apellido: "" }); // Datos del cliente
   const [formasPago, setFormasPago] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [formData, setFormData] = useState({
@@ -41,10 +45,9 @@ function DespachoOperador() {
     numero_placa: "",
     servicio: "",
     forma_pago: "",
-    fecha: getFechaActual(), // Inicializa con la fecha actual
+    fecha: getFechaActual(),
   });
 
-  // Cargar las formas de pago y los servicios al montar el componente
   useEffect(() => {
     cargarFormasPago();
     cargarServicios();
@@ -59,7 +62,7 @@ function DespachoOperador() {
       setFormasPago(response.data);
       setFormData((prevFormData) => ({
         ...prevFormData,
-        forma_pago: response.data[0]?.tipo || "", // Seleccionar la primera opción
+        forma_pago: response.data[0]?.tipo || "",
       }));
     } catch (error) {
       console.error("Error al cargar las formas de pago", error);
@@ -74,7 +77,7 @@ function DespachoOperador() {
       setServicios(response.data);
       setFormData((prevFormData) => ({
         ...prevFormData,
-        servicio: response.data[0]?.tipo || "", // Seleccionar la primera opción
+        servicio: response.data[0]?.tipo || "",
       }));
     } catch (error) {
       console.error("Error al cargar los servicios", error);
@@ -92,37 +95,32 @@ function DespachoOperador() {
     }
   };
 
-const iniciarVenta = async (ventaData) => {
-  try {
-    // Obtener el ID del operador desde el localStorage
-    const id_operador = localStorage.getItem("id_operador");
+  const iniciarVenta = async (ventaData) => {
+    try {
+      const id_operador = localStorage.getItem("id_operador");
+      const ventaConOperador = { ...ventaData, id_operador };
 
-    // Agregar el id_operador al objeto de datos de la venta
-    const ventaConOperador = { ...ventaData, id_operador };
+      const response = await axios.post("http://localhost:5000/venta_gasolina", ventaConOperador, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
 
-    // Realizar el POST de la venta con el id_operador
-    const response = await axios.post("http://localhost:5000/venta_gasolina", ventaConOperador, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
+      const nuevaVenta = {
+        ...ventaConOperador,
+        id: response.data.id,
+        galones: 0,
+        total: 0,
+        estado: true,
+        simulacionTerminada: false,
+        lado: selectedLado,
+        tipo_manguera: selectedManguera?.tipo_combustible,
+      };
 
-    const nuevaVenta = {
-      ...ventaConOperador,
-      id: response.data.id,
-      galones: 0,
-      total: 0,
-      estado: true,
-      simulacionTerminada: false,
-      lado: selectedLado, // Almacenar el lado seleccionado
-      tipo_manguera: selectedManguera?.tipo_combustible, // Almacenar el tipo de manguera
-    };
-
-    setVentasActivas([...ventasActivas, nuevaVenta]);
-    setIsVentaModalOpen(false); // Cerrar el modal después de iniciar la venta
-  } catch (error) {
-    console.error("Error al iniciar la venta", error);
-  }
-};
-
+      setVentasActivas([...ventasActivas, nuevaVenta]);
+      setIsVentaModalOpen(false);
+    } catch (error) {
+      console.error("Error al iniciar la venta", error);
+    }
+  };
 
   const finalizarVenta = async (id, galones, total) => {
     try {
@@ -131,7 +129,7 @@ const iniciarVenta = async (ventaData) => {
         { galones, total, fecha: new Date() },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
-      cargarVentasActivas(); // Recargar la lista de ventas activas tras finalizar
+      cargarVentasActivas();
     } catch (error) {
       console.error("Error al finalizar la venta", error);
     }
@@ -140,9 +138,7 @@ const iniciarVenta = async (ventaData) => {
   const terminarSimulacion = (id, galones, total) => {
     setVentasActivas((prevVentas) =>
       prevVentas.map((venta) =>
-        venta.id === id
-          ? { ...venta, galones, total, simulacionTerminada: true }
-          : venta
+        venta.id === id ? { ...venta, galones, total, simulacionTerminada: true } : venta
       )
     );
   };
@@ -152,10 +148,11 @@ const iniciarVenta = async (ventaData) => {
       tipo_manguera: "",
       cedula_cliente: "",
       numero_placa: "",
-      servicio: servicios[0]?.tipo || "", // Seleccionar el primer servicio
-      forma_pago: formasPago[0]?.tipo || "", // Seleccionar la primera forma de pago
+      servicio: servicios[0]?.tipo || "",
+      forma_pago: formasPago[0]?.tipo || "",
       fecha: getFechaActual(),
     });
+    setClienteInfo({ nombre: "", apellido: "" });
     setSelectedManguera(null);
     setSelectedLado(null);
     setIsVentaModalOpen(true);
@@ -167,8 +164,26 @@ const iniciarVenta = async (ventaData) => {
 
   const handleSeleccionManguera = (manguera, lado) => {
     setSelectedManguera(manguera);
-    setSelectedLado(lado); // Almacenar el lado
-    setIsMangueraModalOpen(false); // Cerrar el modal al seleccionar
+    setSelectedLado(lado);
+    setIsMangueraModalOpen(false);
+  };
+
+  // Maneja los datos recibidos del escáner
+  const manejarDatosEscaner = ({ placa, cedula, nombre, apellido }) => {
+    setFormData({ ...formData, numero_placa: placa, cedula_cliente: cedula });
+    setClienteInfo({ nombre, apellido });
+    setIsEscanerModalOpen(false); // Cerrar el escáner automáticamente
+  };
+
+  // Abre el modal y busca la placa manualmente ingresada
+  const abrirEscanerYBuscarPlaca = () => {
+    if (formData.numero_placa) {
+      // Si ya hay una placa ingresada manualmente, la buscamos
+      manejarDatosEscaner({ placa: formData.numero_placa });
+    } else {
+      // Abrimos el modal del escáner
+      setIsEscanerModalOpen(true);
+    }
   };
 
   return (
@@ -223,7 +238,9 @@ const iniciarVenta = async (ventaData) => {
 
       <Modal open={isVentaModalOpen} onClose={() => setIsVentaModalOpen(false)}>
         <Box sx={{ ...modalStyle }}>
-          <Typography variant="h6">Iniciar Nueva Venta</Typography>
+          <Typography variant="h6">
+            Iniciar Nueva Venta {clienteInfo.nombre && `- ${clienteInfo.nombre} ${clienteInfo.apellido}`}
+          </Typography>
 
           <Button
             variant="outlined"
@@ -248,6 +265,15 @@ const iniciarVenta = async (ventaData) => {
             onChange={handleChange}
             fullWidth
             margin="normal"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={abrirEscanerYBuscarPlaca}>
+                    <CameraAltIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
 
           <FormControl fullWidth margin="normal">
@@ -294,7 +320,7 @@ const iniciarVenta = async (ventaData) => {
             variant="contained"
             color="primary"
             onClick={() => iniciarVenta({ ...formData, tipo_manguera: selectedManguera.tipo_combustible })}
-            disabled={!selectedManguera} // Deshabilitar si no se ha seleccionado una manguera
+            disabled={!selectedManguera}
             sx={{ mt: 2 }}
           >
             Iniciar Venta
@@ -302,11 +328,16 @@ const iniciarVenta = async (ventaData) => {
         </Box>
       </Modal>
 
-      {/* Modal para seleccionar manguera */}
       <Modal open={isMangueraModalOpen} onClose={() => setIsMangueraModalOpen(false)}>
         <Box sx={{ ...modalStyle }}>
           <Typography variant="h6">Seleccionar Manguera</Typography>
           <Lados onSeleccionManguera={handleSeleccionManguera} />
+        </Box>
+      </Modal>
+
+      <Modal open={isEscanerModalOpen} onClose={() => setIsEscanerModalOpen(false)}>
+        <Box sx={{ ...modalStyle, overflowY: "auto" }}>
+          <Escaner onDatosDetectados={manejarDatosEscaner} onClose={() => setIsEscanerModalOpen(false)} />
         </Box>
       </Modal>
     </Box>
@@ -319,6 +350,7 @@ const modalStyle = {
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 400,
+  maxHeight: "90vh", // Permitir el scroll vertical
   bgcolor: "background.paper",
   boxShadow: 24,
   p: 4,
