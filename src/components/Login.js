@@ -25,11 +25,12 @@ function Login() {
     } catch (errorAdmin) {
       try {
         const responseOperador = await axios.post("http://localhost:5000/loginOp", { usuario, clave });
-        const { access_token, role, usuario: nombre } = responseOperador.data;
+        const { access_token, role, usuario: nombre, id } = responseOperador.data;
 
         localStorage.setItem("token", access_token); 
         localStorage.setItem("role", role);
-        localStorage.setItem("usuario", nombre); 
+        localStorage.setItem("usuario", nombre);
+        localStorage.setItem("id_operador", id); 
 
         if (role === "operador") {
           navigate("/operador");

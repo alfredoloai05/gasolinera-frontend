@@ -9,11 +9,12 @@ import {
   ListItem,
   ListItemText,
   IconButton,
-  ListItemSecondaryAction
+  ListItemSecondaryAction,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
+import VentaCliente from "../components/VentaCliente"; // Componente para seleccionar cliente
 
 function VentaArticuloOperador() {
   const [perchas, setPerchas] = useState([]);
@@ -21,23 +22,22 @@ function VentaArticuloOperador() {
   const [selectedPercha, setSelectedPercha] = useState(null);
   const [selectedProducto, setSelectedProducto] = useState(null);
   const [selectedCantidad, setSelectedCantidad] = useState(0);
-  const [carrito, setCarrito] = useState([]); // Aquí se almacenarán los productos seleccionados
+  const [carrito, setCarrito] = useState([]); // Productos seleccionados
   const [isProductModalOpen, setProductModalOpen] = useState(false);
   const [isQuantityModalOpen, setQuantityModalOpen] = useState(false);
-  const [editIndex, setEditIndex] = useState(null); // Para modificar la cantidad de un producto
+  const [editIndex, setEditIndex] = useState(null); // Para editar la cantidad de un producto
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(null); // Cliente seleccionado
 
-  // Obtener las perchas asignadas al operador
+  // Obtener perchas asignadas
   const fetchPerchasAsignadas = async () => {
     const gruposAsignados = JSON.parse(localStorage.getItem("gruposAsignados")) || [];
-    
     const perchasAsignadas = [];
     for (const grupoId of gruposAsignados) {
       const response = await axios.get(`http://localhost:5000/perchas/grupo/${grupoId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      perchasAsignadas.push(...response.data); // Concatenar las perchas de cada grupo
+      perchasAsignadas.push(...response.data); // Concatenar perchas
     }
-    
     setPerchas(perchasAsignadas);
   };
 
@@ -45,24 +45,24 @@ function VentaArticuloOperador() {
     fetchPerchasAsignadas();
   }, []);
 
-  // Abrir modal con productos de una percha
+  // Abrir modal con productos de la percha seleccionada y bloquear las otras
   const handleOpenProductosModal = async (perchaId) => {
     const response = await axios.get(`http://localhost:5000/productos/percha/${perchaId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
     setProductos(response.data);
-    setSelectedPercha(perchaId);
+    setSelectedPercha(perchaId); // Bloquea las demás perchas
     setProductModalOpen(true);
   };
 
-  // Seleccionar un producto para añadir o editar cantidad
+  // Seleccionar un producto para añadir al carrito
   const handleSelectProducto = (producto) => {
     setSelectedProducto(producto);
-    setProductModalOpen(false); // Cerrar el modal de productos
-    setQuantityModalOpen(true); // Abrir el modal para seleccionar la cantidad
+    setProductModalOpen(false); // Cerrar modal de productos
+    setQuantityModalOpen(true); // Abrir modal para cantidad
   };
 
-  // Añadir o actualizar el producto con la cantidad seleccionada al carrito
+  // Añadir o actualizar el producto en el carrito
   const handleAddToCarrito = () => {
     const nuevoProducto = {
       ...selectedProducto,
@@ -70,96 +70,109 @@ function VentaArticuloOperador() {
       precioTotal: selectedProducto.precio * selectedCantidad,
     };
 
-    // Si estamos editando un producto, reemplazamos el producto en esa posición
     if (editIndex !== null) {
       const nuevoCarrito = [...carrito];
       nuevoCarrito[editIndex] = nuevoProducto;
       setCarrito(nuevoCarrito);
-      setEditIndex(null); // Reiniciar el índice de edición
+      setEditIndex(null);
     } else {
-      setCarrito([...carrito, nuevoProducto]); // Añadir al carrito
+      setCarrito([...carrito, nuevoProducto]);
     }
 
-    setQuantityModalOpen(false); // Cerrar el modal de cantidad
-    setSelectedCantidad(0); // Resetear cantidad seleccionada
+    setQuantityModalOpen(false); // Cerrar modal de cantidad
+    setSelectedCantidad(0); // Resetear cantidad
   };
 
-  // Eliminar un producto del carrito
+  // Eliminar producto del carrito
   const handleEliminarProducto = (index) => {
     const nuevoCarrito = carrito.filter((_, i) => i !== index);
     setCarrito(nuevoCarrito);
   };
 
-  // Editar un producto del carrito
+  // Editar producto en el carrito
   const handleEditarProducto = (index) => {
     const producto = carrito[index];
-    setSelectedProducto(producto); // Seteamos el producto a editar
-    setSelectedCantidad(producto.cantidadSeleccionada); // Cargamos la cantidad actual
-    setEditIndex(index); // Guardamos el índice del producto a editar
-    setQuantityModalOpen(true); // Abrimos el modal de cantidad
+    setSelectedProducto(producto);
+    setSelectedCantidad(producto.cantidadSeleccionada);
+    setEditIndex(index);
+    setQuantityModalOpen(true);
   };
 
-  // Calcular el valor total de la venta
+  // Calcular total de la venta
   const calcularTotalVenta = () => {
     return carrito.reduce((total, producto) => total + producto.precioTotal, 0);
   };
 
-  // Función para vender
   const handleVender = async () => {
-    const totalVenta = calcularTotalVenta(); // Calcula el total de la venta
+    const totalVenta = calcularTotalVenta(); 
+    const idOperador = localStorage.getItem("id_operador");
+  
     const venta = {
-      productos: carrito.map(({ id, nombre, cantidadSeleccionada, precio, precioTotal }) => ({
+      id_operador: idOperador,
+      totalVenta: totalVenta,
+      id_estante: selectedPercha,
+      cedula_cliente: clienteSeleccionado?.cedula,  // Cambiar a 'cedula_cliente'
+      productos: carrito.map(({ id, cantidadSeleccionada, precioTotal }) => ({
         id_producto: id,
-        nombre: nombre,
         cantidad: cantidadSeleccionada,
-        precio_unitario: precio,
-        total_producto: precioTotal, // Total por producto
+        total_producto: precioTotal,
       })),
-      totalVenta: totalVenta, // Agrega el total de la venta al JSON
     };
-
-    alert(JSON.stringify(venta, null, 2)); // Mostrar el JSON con toda la venta
-
+  
+    // Log para verificar los datos antes de enviar al backend
+    console.log("Datos a enviar:", venta);
+  
     try {
-      for (const producto of carrito) {
-        // Actualizar la cantidad de cada producto en el backend
-        await axios.put(
-          `http://localhost:5000/producto/${producto.id}`,
-          {
-            cantidad: producto.cantidad - producto.cantidadSeleccionada, // Actualizar cantidad
-          },
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          }
-        );
-      }
-
-      // Limpiar el carrito después de vender
-      setCarrito([]);
+      // Enviar la venta al backend
+      const response = await axios.post("http://localhost:5000/venta_articulo", venta, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+  
+      alert("Venta realizada con éxito");
+      
+      // Limpiar todos los campos
+      setCarrito([]);  // Limpiar carrito
+      setSelectedPercha(null);  // Desbloquear perchas
+      setClienteSeleccionado(null);  // Limpiar cliente seleccionado
+      setProductos([]);  // Limpiar productos de la percha
+      setSelectedProducto(null);  // Limpiar producto seleccionado
+      setSelectedCantidad(0);  // Resetear cantidad
     } catch (error) {
-      console.error("Error al vender productos", error);
+      console.error("Error al realizar la venta", error);
     }
+};
+
+  // Manejar la cancelación de la venta
+  const handleCancelarVenta = () => {
+    setCarrito([]);
+    setSelectedPercha(null); // Desbloquear las perchas
   };
 
   return (
     <Box>
+      {/* Componente para seleccionar cliente */}
+      <VentaCliente
+        onClienteEncontrado={setClienteSeleccionado} // Guardar cliente seleccionado
+      />
+
       <Typography variant="h5" gutterBottom>
         Perchas Asignadas
       </Typography>
-      
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+
+      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
         {perchas.map((percha) => (
           <Button
             key={percha.id}
             variant="outlined"
             onClick={() => handleOpenProductosModal(percha.id)}
+            disabled={!!selectedPercha && selectedPercha !== percha.id} // Bloquear perchas no seleccionadas
           >
             {percha.nombre}
           </Button>
         ))}
       </Box>
 
-      {/* Mostrar productos seleccionados */}
+      {/* Carrito de productos seleccionados */}
       <Typography variant="h6">Carrito</Typography>
       <List>
         {carrito.map((producto, idx) => (
@@ -188,6 +201,9 @@ function VentaArticuloOperador() {
           <Button variant="contained" color="primary" onClick={handleVender} sx={{ mt: 2 }}>
             Vender
           </Button>
+          <Button variant="outlined" color="secondary" onClick={handleCancelarVenta} sx={{ mt: 2 }}>
+            Cancelar Venta
+          </Button>
         </Box>
       )}
 
@@ -197,7 +213,7 @@ function VentaArticuloOperador() {
           <Typography variant="h6">Productos en la Percha</Typography>
           <List>
             {productos.map((producto) => (
-              <ListItem button key={producto.id} onClick={() => handleSelectProducto(producto)}>
+              <ListItem key={producto.id} button onClick={() => handleSelectProducto(producto)}>
                 <ListItemText
                   primary={producto.nombre}
                   secondary={`Cantidad: ${producto.cantidad} | Precio: $${producto.precio}`}
@@ -229,12 +245,12 @@ function VentaArticuloOperador() {
 }
 
 const modalStyle = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
   width: 400,
-  bgcolor: 'background.paper',
+  bgcolor: "background.paper",
   boxShadow: 24,
   p: 4,
 };
