@@ -8,8 +8,6 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import LocalParkingIcon from "@mui/icons-material/LocalParking";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
@@ -26,7 +24,7 @@ const style = {
   p: 4,
 };
 
-function VentaCliente({ cedulaInicial, onClienteEncontrado }) {
+function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
   const [cliente, setCliente] = useState(null);
   const [placas, setPlacas] = useState([]);
   const [cedulaBuscar, setCedulaBuscar] = useState(cedulaInicial || ""); 
@@ -44,12 +42,36 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado }) {
     cedula_cliente: "",
   });
 
-  // Realizar búsqueda automática si se recibe una cédula del componente padre
   useEffect(() => {
     if (cedulaInicial) {
       buscarClientePorCedula(cedulaInicial);
     }
   }, [cedulaInicial]);
+
+  // Función para limpiar los campos
+  const limpiarCampos = () => {
+    setCedulaBuscar("");
+    setCliente(null);
+    setPlacas([]);
+    setNewCliente({
+      nombre: "",
+      apellido: "",
+      correo: "",
+      direccion: "",
+      cedula: "",
+    });
+    setNewPlaca({
+      numero: "",
+      cedula_cliente: "",
+    });
+  };
+
+  // Llamar a onLimpiar cuando se necesite limpiar el componente desde fuera
+  useEffect(() => {
+    if (onLimpiar) {
+      onLimpiar(limpiarCampos);
+    }
+  }, [onLimpiar]);
 
   // Buscar cliente por cédula
   const buscarClientePorCedula = async (cedula) => {
@@ -58,7 +80,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado }) {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setCliente(response.data);
-      const placasCliente = await fetchPlacasByCliente(response.data.cedula); // Cargar las placas del cliente encontrado
+      const placasCliente = await fetchPlacasByCliente(response.data.cedula);
 
       // Devolver los datos del cliente y las placas al componente padre
       onClienteEncontrado({ ...response.data, placas: placasCliente });
@@ -77,14 +99,14 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado }) {
     }
   };
 
-  // Obtener las placas del cliente y abrir el modal si no hay placas
+  // Obtener las placas del cliente
   const fetchPlacasByCliente = async (cedula) => {
     try {
       const response = await axios.get(`http://localhost:5000/cliente/${cedula}/placas`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setPlacas(response.data);
-      return response.data;  // Devuelve las placas para pasarlas al padre
+      return response.data;
     } catch (error) {
       console.error("Error al cargar placas", error);
       return [];
@@ -154,7 +176,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado }) {
         </Tooltip>
       </Box>
 
-      {/* Mostrar cliente encontrado o modal para crear nuevo */}
+      {/* Mostrar cliente encontrado o mensaje */}
       {cliente ? (
         <div>
           <Typography variant="h6">

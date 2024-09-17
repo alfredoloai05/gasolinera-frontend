@@ -36,7 +36,7 @@ function VentaArticuloOperador() {
       const response = await axios.get(`http://localhost:5000/perchas/grupo/${grupoId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      perchasAsignadas.push(...response.data); // Concatenar perchas
+      perchasAsignadas.push(...response.data);
     }
     setPerchas(perchasAsignadas);
   };
@@ -51,15 +51,15 @@ function VentaArticuloOperador() {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
     setProductos(response.data);
-    setSelectedPercha(perchaId); // Bloquea las demás perchas
+    setSelectedPercha(perchaId);
     setProductModalOpen(true);
   };
 
   // Seleccionar un producto para añadir al carrito
   const handleSelectProducto = (producto) => {
     setSelectedProducto(producto);
-    setProductModalOpen(false); // Cerrar modal de productos
-    setQuantityModalOpen(true); // Abrir modal para cantidad
+    setProductModalOpen(false);
+    setQuantityModalOpen(true);
   };
 
   // Añadir o actualizar el producto en el carrito
@@ -79,8 +79,8 @@ function VentaArticuloOperador() {
       setCarrito([...carrito, nuevoProducto]);
     }
 
-    setQuantityModalOpen(false); // Cerrar modal de cantidad
-    setSelectedCantidad(0); // Resetear cantidad
+    setQuantityModalOpen(false);
+    setSelectedCantidad(0);
   };
 
   // Eliminar producto del carrito
@@ -98,6 +98,12 @@ function VentaArticuloOperador() {
     setQuantityModalOpen(true);
   };
 
+  // Manejar la cancelación de la venta
+  const handleCancelarVenta = () => {
+    setCarrito([]);
+    setSelectedPercha(null); // Desbloquear las perchas
+  };
+
   // Calcular total de la venta
   const calcularTotalVenta = () => {
     return carrito.reduce((total, producto) => total + producto.precioTotal, 0);
@@ -106,53 +112,51 @@ function VentaArticuloOperador() {
   const handleVender = async () => {
     const totalVenta = calcularTotalVenta(); 
     const idOperador = localStorage.getItem("id_operador");
-  
+
     const venta = {
       id_operador: idOperador,
       totalVenta: totalVenta,
       id_estante: selectedPercha,
-      cedula_cliente: clienteSeleccionado?.cedula,  // Cambiar a 'cedula_cliente'
+      cedula_cliente: clienteSeleccionado?.cedula,
       productos: carrito.map(({ id, cantidadSeleccionada, precioTotal }) => ({
         id_producto: id,
         cantidad: cantidadSeleccionada,
         total_producto: precioTotal,
       })),
     };
-  
-    // Log para verificar los datos antes de enviar al backend
-    console.log("Datos a enviar:", venta);
-  
+
     try {
-      // Enviar la venta al backend
       const response = await axios.post("http://localhost:5000/venta_articulo", venta, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-  
+
       alert("Venta realizada con éxito");
       
       // Limpiar todos los campos
-      setCarrito([]);  // Limpiar carrito
-      setSelectedPercha(null);  // Desbloquear perchas
-      setClienteSeleccionado(null);  // Limpiar cliente seleccionado
-      setProductos([]);  // Limpiar productos de la percha
-      setSelectedProducto(null);  // Limpiar producto seleccionado
-      setSelectedCantidad(0);  // Resetear cantidad
+      setCarrito([]);
+      setSelectedPercha(null);
+      setClienteSeleccionado(null);
+      setProductos([]);
+      setSelectedProducto(null);
+      setSelectedCantidad(0);
+      
+      // Llamar a la función de limpieza en el componente VentaCliente
+      if (limpiarCliente) {
+        limpiarCliente();
+      }
     } catch (error) {
       console.error("Error al realizar la venta", error);
     }
-};
-
-  // Manejar la cancelación de la venta
-  const handleCancelarVenta = () => {
-    setCarrito([]);
-    setSelectedPercha(null); // Desbloquear las perchas
   };
+
+  // Función para recibir la función de limpieza desde VentaCliente
+  const [limpiarCliente, setLimpiarCliente] = useState(null);
 
   return (
     <Box>
-      {/* Componente para seleccionar cliente */}
       <VentaCliente
-        onClienteEncontrado={setClienteSeleccionado} // Guardar cliente seleccionado
+        onClienteEncontrado={setClienteSeleccionado}
+        onLimpiar={(limpiarFn) => setLimpiarCliente(() => limpiarFn)}
       />
 
       <Typography variant="h5" gutterBottom>
@@ -165,14 +169,13 @@ function VentaArticuloOperador() {
             key={percha.id}
             variant="outlined"
             onClick={() => handleOpenProductosModal(percha.id)}
-            disabled={!!selectedPercha && selectedPercha !== percha.id} // Bloquear perchas no seleccionadas
+            disabled={!!selectedPercha && selectedPercha !== percha.id}
           >
             {percha.nombre}
           </Button>
         ))}
       </Box>
 
-      {/* Carrito de productos seleccionados */}
       <Typography variant="h6">Carrito</Typography>
       <List>
         {carrito.map((producto, idx) => (
