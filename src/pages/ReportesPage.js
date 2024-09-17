@@ -8,6 +8,10 @@ import {
   FormControl,
   InputLabel,
   TextField,
+  Grid,
+  Card,
+  CardContent,
+  Paper,
 } from "@mui/material";
 import axios from "axios";
 import html2pdf from "html2pdf.js";
@@ -16,7 +20,7 @@ function Reportes() {
   const [reportType, setReportType] = useState("gasolina");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [reportData, setReportData] = useState([]);
+  const [reportData, setReportData] = useState({ gasolina: [], productos: [] }); // Cambiado a tener siempre un objeto con gasolina y productos
   const id_operador = localStorage.getItem("id_operador");
 
   // Estados para filtros adicionales
@@ -32,7 +36,6 @@ function Reportes() {
   const [estanteOptions, setEstanteOptions] = useState([]);
 
   useEffect(() => {
-    // Cargar opciones para los select dependiendo del tipo de reporte
     if (reportType === "gasolina") {
       // Cargar tipos de combustible asociados al operador
       axios
@@ -40,7 +43,6 @@ function Reportes() {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         })
         .then((response) => {
-          // Extraer los tipos de combustible únicos
           const tipos = [...new Set(response.data.map((m) => m.tipo_combustible))];
           setTipoMangueraOptions(tipos);
         })
@@ -87,6 +89,11 @@ function Reportes() {
   }, [reportType, id_operador]);
 
   const handleGenerateReport = async () => {
+    if (!fromDate || !toDate) {
+      alert("Por favor, selecciona las fechas desde y hasta.");
+      return;
+    }
+
     let url = "";
     let params = {
       from_date: fromDate,
@@ -112,10 +119,14 @@ function Reportes() {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         params: params,
       });
-      console.log("Datos recibidos:", response.data);
-      setReportData(response.data);
+      if (reportType === "gasolina") {
+        setReportData({ ...reportData, gasolina: response.data });
+      } else if (reportType === "productos") {
+        setReportData({ ...reportData, productos: response.data });
+      }
     } catch (error) {
       console.error("Error al obtener el reporte", error);
+      alert("Ocurrió un error al generar el reporte.");
     }
   };
 
@@ -139,44 +150,43 @@ function Reportes() {
           },
         }),
       ]);
-      console.log("Datos recibidos - Gasolina:", gasolinaResponse.data);
-      console.log("Datos recibidos - Productos:", productosResponse.data);
       setReportData({
-        gasolina: gasolinaResponse.data,
-        productos: productosResponse.data,
+        gasolina: gasolinaResponse.data || [],
+        productos: productosResponse.data || [],
       });
     } catch (error) {
       console.error("Error al obtener el reporte total", error);
+      alert("Ocurrió un error al generar el reporte total.");
     }
   };
 
   // Funciones para calcular los totales
   const calcularTotalesGasolina = () => {
-    const numeroVentas = reportData.length;
-    const totalVentas = reportData.reduce(
-      (acc, venta) => acc + parseFloat(venta.total),
+    if (!reportData.gasolina || !Array.isArray(reportData.gasolina)) return { numeroVentas: 0, totalVentas: 0 };
+
+    const numeroVentas = reportData.gasolina.length;
+    const totalVentas = reportData.gasolina.reduce(
+      (acc, venta) => acc + parseFloat(venta.total || 0),
       0
     );
     return { numeroVentas, totalVentas };
   };
 
   const calcularTotalesProductos = () => {
-    const ventasUnicas = {};
-    reportData.forEach((venta) => {
-      if (!ventasUnicas[venta.id_venta]) {
-        ventasUnicas[venta.id_venta] = parseFloat(venta.total_venta);
-      }
-    });
+    if (!reportData.productos || !Array.isArray(reportData.productos)) return { numeroVentas: 0, totalVentas: 0 };
 
-    const numeroVentas = Object.keys(ventasUnicas).length;
-    const totalVentas = Object.values(ventasUnicas).reduce(
-      (acc, total) => acc + total,
+    const ventasUnicas = new Set(reportData.productos.map((venta) => venta.id_venta));
+    const numeroVentas = ventasUnicas.size;
+    const totalVentas = reportData.productos.reduce(
+      (acc, venta) => acc + parseFloat(venta.total_producto || 0),
       0
     );
     return { numeroVentas, totalVentas };
   };
 
   const renderReportData = () => {
+    if (!reportData) return null;
+
     if (reportType === "gasolina") {
       const { numeroVentas, totalVentas } = calcularTotalesGasolina();
 
@@ -184,28 +194,32 @@ function Reportes() {
         <Box>
           <Typography variant="h6">Reporte de Ventas de Gasolina</Typography>
           <Typography>
-            Número de Ventas: {numeroVentas} | Total de Ventas: $
+            <strong>Número de Ventas:</strong> {numeroVentas} | <strong>Total de Ventas:</strong> $
             {totalVentas.toFixed(2)}
           </Typography>
-          {reportData && reportData.length > 0 ? (
-            reportData.map((venta, index) => (
-              <Box key={index} sx={{ border: "1px solid gray", p: 2, mb: 2 }}>
-                <Typography>ID Venta: {venta.id}</Typography>
-                <Typography>
-                  Fecha: {new Date(venta.fecha).toLocaleString()}
-                </Typography>
-                <Typography>Galones: {venta.galones}</Typography>
-                <Typography>Total: {venta.total}</Typography>
-                <Typography>Cliente: {venta.cedula_cliente}</Typography>
-                <Typography>
-                  Tipo de Combustible: {venta.tipo_manguera}
-                </Typography>
-                <Typography>Forma de Pago: {venta.forma_pago}</Typography>
-                <Typography>Servicio: {venta.servicio}</Typography>
-              </Box>
-            ))
+          {reportData.gasolina.length > 0 ? (
+            <Box sx={{ mt: 2 }}>
+              <Grid container spacing={2}>
+                {reportData.gasolina.map((venta, index) => (
+                  <Grid item xs={12} md={6} lg={4} key={index}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">ID Venta: {venta.id}</Typography>
+                        <Typography>Fecha: {new Date(venta.fecha).toLocaleString()}</Typography>
+                        <Typography>Galones: {venta.galones}</Typography>
+                        <Typography>Total: ${parseFloat(venta.total).toFixed(2)}</Typography>
+                        <Typography>Cliente: {venta.cedula_cliente}</Typography>
+                        <Typography>Tipo de Combustible: {venta.tipo_manguera}</Typography>
+                        <Typography>Forma de Pago: {venta.forma_pago}</Typography>
+                        <Typography>Servicio: {venta.servicio}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
           ) : (
-            <Typography>No hay datos para mostrar.</Typography>
+            <Typography sx={{ mt: 2 }}>No hay datos para mostrar.</Typography>
           )}
         </Box>
       );
@@ -216,112 +230,64 @@ function Reportes() {
         <Box>
           <Typography variant="h6">Reporte de Ventas de Productos</Typography>
           <Typography>
-            Número de Ventas: {numeroVentas} | Total de Ventas: $
+            <strong>Número de Ventas:</strong> {numeroVentas} | <strong>Total de Ventas:</strong> $
             {totalVentas.toFixed(2)}
           </Typography>
-          {reportData && reportData.length > 0 ? (
-            reportData.map((venta, index) => (
-              <Box key={index} sx={{ border: "1px solid gray", p: 2, mb: 2 }}>
-                <Typography>ID Venta: {venta.id_venta}</Typography>
-                <Typography>
-                  Fecha: {new Date(venta.fecha).toLocaleString()}
-                </Typography>
-                <Typography>Total Venta: {venta.total_venta}</Typography>
-                <Typography>Cliente: {venta.cedula_cliente}</Typography>
-                <Typography>Estante: {venta.nombre_estante}</Typography>
-                <Typography>Producto: {venta.nombre_producto}</Typography>
-                <Typography>Cantidad: {venta.cantidad}</Typography>
-                <Typography>Total Producto: {venta.total_producto}</Typography>
-              </Box>
-            ))
+          {reportData.productos.length > 0 ? (
+            <Box sx={{ mt: 2 }}>
+              <Grid container spacing={2}>
+                {reportData.productos.map((venta, index) => (
+                  <Grid item xs={12} md={6} lg={4} key={index}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">ID Venta: {venta.id_venta}</Typography>
+                        <Typography>Fecha: {new Date(venta.fecha).toLocaleString()}</Typography>
+                        <Typography>Total Venta: ${parseFloat(venta.total_venta).toFixed(2)}</Typography>
+                        <Typography>Cliente: {venta.cedula_cliente}</Typography>
+                        <Typography>Estante: {venta.nombre_estante}</Typography>
+                        <Typography>Producto: {venta.nombre_producto}</Typography>
+                        <Typography>Cantidad: {venta.cantidad}</Typography>
+                        <Typography>Total Producto: ${parseFloat(venta.total_producto).toFixed(2)}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
           ) : (
-            <Typography>No hay datos para mostrar.</Typography>
+            <Typography sx={{ mt: 2 }}>No hay datos para mostrar.</Typography>
           )}
         </Box>
       );
     } else if (reportType === "total") {
-      const { gasolina, productos } = reportData;
-
-      // Calcular totales para gasolina
-      const totalesGasolina = {
-        numeroVentas: gasolina.length,
-        totalVentas: gasolina.reduce(
-          (acc, venta) => acc + parseFloat(venta.total),
-          0
-        ),
-      };
-
-      // Calcular totales para productos
-      const ventasUnicasProductos = {};
-      productos.forEach((venta) => {
-        if (!ventasUnicasProductos[venta.id_venta]) {
-          ventasUnicasProductos[venta.id_venta] = parseFloat(venta.total_venta);
-        }
-      });
-
-      const totalesProductos = {
-        numeroVentas: Object.keys(ventasUnicasProductos).length,
-        totalVentas: Object.values(ventasUnicasProductos).reduce(
-          (acc, total) => acc + total,
-          0
-        ),
-      };
+      const totalesGasolina = calcularTotalesGasolina();
+      const totalesProductos = calcularTotalesProductos();
 
       return (
         <Box>
           <Typography variant="h6">Reporte Total de Ventas</Typography>
 
           {/* Resumen de Gasolina */}
-          <Typography variant="h6">Ventas de Gasolina</Typography>
-          <Typography>
-            Número de Ventas: {totalesGasolina.numeroVentas} | Total de Ventas: $
-            {totalesGasolina.totalVentas.toFixed(2)}
-          </Typography>
-          {gasolina && gasolina.length > 0 ? (
-            gasolina.map((venta, index) => (
-              <Box key={index} sx={{ border: "1px solid gray", p: 2, mb: 2 }}>
-                <Typography>ID Venta: {venta.id}</Typography>
-                <Typography>
-                  Fecha: {new Date(venta.fecha).toLocaleString()}
-                </Typography>
-                <Typography>Galones: {venta.galones}</Typography>
-                <Typography>Total: {venta.total}</Typography>
-                <Typography>Cliente: {venta.cedula_cliente}</Typography>
-                <Typography>
-                  Tipo de Combustible: {venta.tipo_manguera}
-                </Typography>
-                <Typography>Forma de Pago: {venta.forma_pago}</Typography>
-                <Typography>Servicio: {venta.servicio}</Typography>
-              </Box>
-            ))
-          ) : (
-            <Typography>No hay datos para mostrar.</Typography>
-          )}
+          <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
+            <Typography variant="subtitle1">Ventas de Gasolina</Typography>
+            <Typography>
+              <strong>Número de Ventas:</strong> {totalesGasolina.numeroVentas}
+            </Typography>
+            <Typography>
+              <strong>Total de Ventas:</strong> ${totalesGasolina.totalVentas.toFixed(2)}
+            </Typography>
+          </Paper>
 
           {/* Resumen de Productos */}
-          <Typography variant="h6">Ventas de Productos</Typography>
-          <Typography>
-            Número de Ventas: {totalesProductos.numeroVentas} | Total de Ventas: $
-            {totalesProductos.totalVentas.toFixed(2)}
-          </Typography>
-          {productos && productos.length > 0 ? (
-            productos.map((venta, index) => (
-              <Box key={index} sx={{ border: "1px solid gray", p: 2, mb: 2 }}>
-                <Typography>ID Venta: {venta.id_venta}</Typography>
-                <Typography>
-                  Fecha: {new Date(venta.fecha).toLocaleString()}
-                </Typography>
-                <Typography>Total Venta: {venta.total_venta}</Typography>
-                <Typography>Cliente: {venta.cedula_cliente}</Typography>
-                <Typography>Estante: {venta.nombre_estante}</Typography>
-                <Typography>Producto: {venta.nombre_producto}</Typography>
-                <Typography>Cantidad: {venta.cantidad}</Typography>
-                <Typography>Total Producto: {venta.total_producto}</Typography>
-              </Box>
-            ))
-          ) : (
-            <Typography>No hay datos para mostrar.</Typography>
-          )}
+          <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
+            <Typography variant="subtitle1">Ventas de Productos</Typography>
+            <Typography>
+              <strong>Número de Ventas:</strong> {totalesProductos.numeroVentas}
+            </Typography>
+            <Typography>
+              <strong>Total de Ventas:</strong> ${totalesProductos.totalVentas.toFixed(2)}
+            </Typography>
+          </Paper>
         </Box>
       );
     }
@@ -354,11 +320,11 @@ function Reportes() {
           value={reportType}
           onChange={(e) => {
             setReportType(e.target.value);
-            // Reiniciar filtros adicionales
             setTipoManguera("");
             setFormaPago("");
             setServicio("");
             setIdEstante("");
+            setReportData({ gasolina: [], productos: [] });
           }}
         >
           <MenuItem value="gasolina">Gasolina</MenuItem>
@@ -367,34 +333,41 @@ function Reportes() {
         </Select>
       </FormControl>
 
-      <TextField
-        label="Desde"
-        type="date"
-        value={fromDate}
-        onChange={(e) => setFromDate(e.target.value)}
-        fullWidth
-        margin="normal"
-        InputLabelProps={{ shrink: true }}
-      />
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            label="Desde"
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
 
-      <TextField
-        label="Hasta"
-        type="date"
-        value={toDate}
-        onChange={(e) => setToDate(e.target.value)}
-        fullWidth
-        margin="normal"
-        InputLabelProps={{ shrink: true }}
-      />
+        <Grid item xs={12} sm={6}>
+          <TextField
+            label="Hasta"
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+      </Grid>
 
       {/* Filtros adicionales para Gasolina */}
       {reportType === "gasolina" && (
-        <>
+        <Box>
           <FormControl fullWidth margin="normal">
             <InputLabel>Tipo de Combustible</InputLabel>
             <Select
               value={tipoManguera}
               onChange={(e) => setTipoManguera(e.target.value)}
+              label="Tipo de Combustible"
             >
               <MenuItem value="">
                 <em>Todos</em>
@@ -412,6 +385,7 @@ function Reportes() {
             <Select
               value={formaPago}
               onChange={(e) => setFormaPago(e.target.value)}
+              label="Forma de Pago"
             >
               <MenuItem value="">
                 <em>Todos</em>
@@ -429,6 +403,7 @@ function Reportes() {
             <Select
               value={servicio}
               onChange={(e) => setServicio(e.target.value)}
+              label="Servicio"
             >
               <MenuItem value="">
                 <em>Todos</em>
@@ -440,55 +415,56 @@ function Reportes() {
               ))}
             </Select>
           </FormControl>
-        </>
+        </Box>
       )}
 
       {/* Filtros adicionales para Productos */}
       {reportType === "productos" && (
-        <>
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Estante</InputLabel>
-            <Select
-              value={idEstante}
-              onChange={(e) => setIdEstante(e.target.value)}
-            >
-              <MenuItem value="">
-                <em>Todos</em>
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Estante</InputLabel>
+          <Select
+            value={idEstante}
+            onChange={(e) => setIdEstante(e.target.value)}
+            label="Estante"
+          >
+            <MenuItem value="">
+              <em>Todos</em>
+            </MenuItem>
+            {estanteOptions.map((option) => (
+              <MenuItem key={option.id} value={option.id}>
+                {option.nombre}
               </MenuItem>
-              {estanteOptions.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
-                  {option.nombre}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </>
+            ))}
+          </Select>
+        </FormControl>
       )}
 
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleGenerateReport}
-        sx={{ mt: 2 }}
-      >
-        Generar Reporte
-      </Button>
+      <Box sx={{ mt: 2 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleGenerateReport}
+        >
+          Generar Reporte
+        </Button>
 
-      {/* Mostrar botón de descargar PDF si hay datos */}
-      {reportData &&
-        ((Array.isArray(reportData) && reportData.length > 0) ||
-          (reportType === "total" &&
-            ((reportData.gasolina && reportData.gasolina.length > 0) ||
-              (reportData.productos && reportData.productos.length > 0)))) && (
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleGeneratePDF}
-            sx={{ mt: 2, ml: 2 }}
-          >
-            Descargar PDF
-          </Button>
-        )}
+        {/* Mostrar botón de descargar PDF si hay datos */}
+        {reportData &&
+          ((reportType === "gasolina" && reportData.gasolina.length > 0) ||
+            (reportType === "productos" && reportData.productos.length > 0) ||
+            (reportType === "total" &&
+              ((reportData.gasolina && reportData.gasolina.length > 0) ||
+                (reportData.productos && reportData.productos.length > 0)))) && (
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleGeneratePDF}
+              sx={{ ml: 2 }}
+            >
+              Descargar PDF
+            </Button>
+          )}
+      </Box>
 
       {/* Contenedor del reporte con ID para html2pdf */}
       <Box id="reportContent" sx={{ mt: 4 }}>

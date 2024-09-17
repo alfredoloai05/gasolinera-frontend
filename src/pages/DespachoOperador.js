@@ -20,10 +20,9 @@ import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import Simulador from "../components/Simulador";
 import Lados from "../components/Lados";
-import Escaner from "../components/Detector"; // Importar el escáner
-import VentaCliente from "../components/VentaCliente"; // Importar VentaCliente para buscar cédula
+import Escaner from "../components/Detector";
+import VentaCliente from "../components/VentaCliente";
 
-// Función para obtener la fecha y hora actual en formato ISO 8601
 const getFechaActual = () => {
   return new Date().toISOString();
 };
@@ -45,7 +44,6 @@ function DespachoOperador() {
     numero_placa: "",
     servicio: "",
     forma_pago: "",
-    fecha: getFechaActual(), // Fecha y hora actual en formato ISO 8601
   });
 
   useEffect(() => {
@@ -83,7 +81,7 @@ function DespachoOperador() {
     try {
       await axios.put(
         `http://localhost:5000/venta_gasolina/${id}/finalizar`,
-        { galones, total, fecha: new Date().toISOString() }, // Enviar fecha en formato ISO 8601
+        { galones, total, fecha: new Date().toISOString() },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       cargarVentasActivas();
@@ -99,7 +97,6 @@ function DespachoOperador() {
       numero_placa: "",
       servicio: servicios[0]?.tipo || "",
       forma_pago: formasPago[0]?.tipo || "",
-      fecha: getFechaActual(), // Fecha y hora actual en formato ISO 8601
     });
     setSelectedManguera(null);
     setSelectedLado(null);
@@ -135,7 +132,7 @@ function DespachoOperador() {
   const iniciarVenta = async (ventaData) => {
     try {
       const id_operador = localStorage.getItem("id_operador");
-      const ventaConOperador = { ...ventaData, id_operador };
+      const ventaConOperador = { ...ventaData, id_operador, fecha: getFechaActual() }; // Se establece la fecha actual automáticamente
 
       const response = await axios.post("http://localhost:5000/venta_gasolina", ventaConOperador, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -166,7 +163,6 @@ function DespachoOperador() {
       numero_placa: "",
       servicio: servicios[0]?.tipo || "",
       forma_pago: formasPago[0]?.tipo || "",
-      fecha: getFechaActual(), // Fecha y hora actual en formato ISO 8601
     });
     setClienteInfo({ nombre: "", apellido: "", placas: [] });
     setIsVentaModalOpen(false);
@@ -180,7 +176,6 @@ function DespachoOperador() {
     setIsClienteModalOpen(true);
   };
 
-  // Maneja los datos del escáner
   const manejarDatosEscaner = ({ placa, cedula, nombre, apellido }) => {
     setFormData((prevFormData) => ({
       ...prevFormData,
@@ -191,19 +186,18 @@ function DespachoOperador() {
     setIsEscanerModalOpen(false);
   };
 
-  // Maneja los datos del cliente, incluyendo las placas
   const manejarDatosCliente = (clienteData) => {
     setFormData((prevFormData) => ({
       ...prevFormData,
       cedula_cliente: clienteData.cedula,
-      numero_placa: clienteData.placas.length > 0 ? clienteData.placas[0].numero : "", // Selecciona la primera placa si existe
+      numero_placa: clienteData.placas.length > 0 ? clienteData.placas[0].numero : "",
     }));
     setClienteInfo({
       nombre: clienteData.nombre,
       apellido: clienteData.apellido,
-      placas: clienteData.placas || [], // Almacena las placas del cliente
+      placas: clienteData.placas || [],
     });
-    setIsClienteModalOpen(false); // Cerrar el modal de cliente
+    setIsClienteModalOpen(false);
   };
 
   const handleChange = (e) => {
@@ -227,8 +221,10 @@ function DespachoOperador() {
           <Card
             key={venta.id}
             sx={{
-              width: 200,
-              border: venta.simulacionTerminada ? "3px solid green" : "1px solid grey",
+              width: 250,
+              border: venta.simulacionTerminada ? "3px solid #4caf50" : "1px solid grey",
+              backgroundColor: venta.simulacionTerminada ? "#e8f5e9" : "white",
+              transition: "0.3s",
             }}
           >
             <CardContent>
@@ -301,7 +297,6 @@ function DespachoOperador() {
             }}
           />
 
-          {/* Si hay placas del cliente, las mostramos en un combo box */}
           {clienteInfo.placas.length > 0 ? (
             <FormControl fullWidth margin="normal">
               <InputLabel>Placa</InputLabel>
@@ -366,24 +361,6 @@ function DespachoOperador() {
               ))}
             </Select>
           </FormControl>
-
-          {/* Campo de fecha y hora */}
-          <TextField
-            label="Fecha y Hora"
-            type="datetime-local"
-            name="fecha"
-            value={formData.fecha.slice(0, 16)} // Mostrar formato compatible con datetime-local
-            onChange={(e) => {
-              // Actualizar formData.fecha con la nueva fecha y hora en formato ISO
-              const fechaISO = new Date(e.target.value).toISOString();
-              setFormData({ ...formData, fecha: fechaISO });
-            }}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
 
           <Button
             variant="contained"

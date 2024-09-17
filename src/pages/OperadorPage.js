@@ -24,12 +24,14 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import MenuIcon from "@mui/icons-material/Menu";
+import BuildIcon from "@mui/icons-material/Build";
 import StorageIcon from "@mui/icons-material/Storage"; // Icono para la nueva pestaña
 import { useNavigate } from "react-router-dom";
 import GrupoOperador from "./GrupoOperador";
 import VentaArticuloOperador from "./VentaArticuloOperador";
 import DespachoOperador from "./DespachoOperador";
-import ClientesCrud from "./ReportesPage";//VentaPlaca //StorageViewer; // Importar el nuevo componente
+import ClientesCrud from "../components/VentaCliente";//VentaPlaca //StorageViewer; // Importar el nuevo componente
+import Reportes from "./ReportesPage";
 import axios from "axios";
 
 const drawerWidth = 240;
@@ -148,6 +150,15 @@ function OperadorPage() {
           <ListItemText primary="Clientes" />
         </ListItem>
 
+        {/* Opción Storage */}
+        <ListItem button onClick={() => setSelectedPage("Reportes")}>
+          <ListItemIcon>
+            <BuildIcon />
+          </ListItemIcon>
+          <ListItemText primary="Reportes" />
+        </ListItem>
+
+
         {/* Opción Cerrar Sesión */}
         <ListItem button onClick={handleConfirmLogout}>
           <ListItemIcon>
@@ -168,7 +179,9 @@ function OperadorPage() {
       case "DespachoOperador":
         return <DespachoOperador />;
       case "Clientes":
-        return <ClientesCrud />; // Mostrar el componente de Storage
+        return <ClientesCrud />;
+      case "Reportes":
+        return <Reportes />; 
       default:
         return <GrupoOperador />;
     }
