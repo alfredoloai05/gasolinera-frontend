@@ -23,12 +23,9 @@ import Lados from "../components/Lados";
 import Escaner from "../components/Detector"; // Importar el escáner
 import VentaCliente from "../components/VentaCliente"; // Importar VentaCliente para buscar cédula
 
+// Función para obtener la fecha y hora actual en formato ISO 8601
 const getFechaActual = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return new Date().toISOString();
 };
 
 function DespachoOperador() {
@@ -48,7 +45,7 @@ function DespachoOperador() {
     numero_placa: "",
     servicio: "",
     forma_pago: "",
-    fecha: getFechaActual(),
+    fecha: getFechaActual(), // Fecha y hora actual en formato ISO 8601
   });
 
   useEffect(() => {
@@ -86,7 +83,7 @@ function DespachoOperador() {
     try {
       await axios.put(
         `http://localhost:5000/venta_gasolina/${id}/finalizar`,
-        { galones, total, fecha: new Date() },
+        { galones, total, fecha: new Date().toISOString() }, // Enviar fecha en formato ISO 8601
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       cargarVentasActivas();
@@ -95,14 +92,14 @@ function DespachoOperador() {
     }
   };
 
- const abrirModalVenta = () => {
+  const abrirModalVenta = () => {
     setFormData({
       tipo_manguera: "",
       cedula_cliente: "",
       numero_placa: "",
       servicio: servicios[0]?.tipo || "",
       forma_pago: formasPago[0]?.tipo || "",
-      fecha: getFechaActual(),
+      fecha: getFechaActual(), // Fecha y hora actual en formato ISO 8601
     });
     setSelectedManguera(null);
     setSelectedLado(null);
@@ -169,7 +166,7 @@ function DespachoOperador() {
       numero_placa: "",
       servicio: servicios[0]?.tipo || "",
       forma_pago: formasPago[0]?.tipo || "",
-      fecha: getFechaActual(),
+      fecha: getFechaActual(), // Fecha y hora actual en formato ISO 8601
     });
     setClienteInfo({ nombre: "", apellido: "", placas: [] });
     setIsVentaModalOpen(false);
@@ -199,14 +196,14 @@ function DespachoOperador() {
     setFormData((prevFormData) => ({
       ...prevFormData,
       cedula_cliente: clienteData.cedula,
-      numero_placa: clienteData.placas.length > 0 ? clienteData.placas[0].numero : "",  // Selecciona la primera placa si existe
+      numero_placa: clienteData.placas.length > 0 ? clienteData.placas[0].numero : "", // Selecciona la primera placa si existe
     }));
     setClienteInfo({
       nombre: clienteData.nombre,
       apellido: clienteData.apellido,
-      placas: clienteData.placas || [],  // Almacena las placas del cliente
+      placas: clienteData.placas || [], // Almacena las placas del cliente
     });
-    setIsClienteModalOpen(false);  // Cerrar el modal de cliente
+    setIsClienteModalOpen(false); // Cerrar el modal de cliente
   };
 
   const handleChange = (e) => {
@@ -242,7 +239,9 @@ function DespachoOperador() {
               <Typography variant="body2">Placa: {venta.numero_placa}</Typography>
               <Typography variant="body2">Galones: {venta.galones}</Typography>
               <Typography variant="body2">Total: ${venta.total}</Typography>
-              <Typography variant="body2">Fecha: {venta.fecha}</Typography>
+              <Typography variant="body2">
+                Fecha: {new Date(venta.fecha).toLocaleString()}
+              </Typography>
             </CardContent>
             <CardActions>
               {!venta.simulacionTerminada && (
@@ -368,14 +367,22 @@ function DespachoOperador() {
             </Select>
           </FormControl>
 
+          {/* Campo de fecha y hora */}
           <TextField
-            label="Fecha"
-            type="date"
+            label="Fecha y Hora"
+            type="datetime-local"
             name="fecha"
-            value={formData.fecha}
-            onChange={handleChange}
+            value={formData.fecha.slice(0, 16)} // Mostrar formato compatible con datetime-local
+            onChange={(e) => {
+              // Actualizar formData.fecha con la nueva fecha y hora en formato ISO
+              const fechaISO = new Date(e.target.value).toISOString();
+              setFormData({ ...formData, fecha: fechaISO });
+            }}
             fullWidth
             margin="normal"
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
 
           <Button

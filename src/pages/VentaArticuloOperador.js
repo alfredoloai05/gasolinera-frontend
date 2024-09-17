@@ -5,11 +5,17 @@ import {
   Typography,
   Modal,
   TextField,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
   List,
   ListItem,
   ListItemText,
-  IconButton,
-  ListItemSecondaryAction,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -118,6 +124,7 @@ function VentaArticuloOperador() {
       totalVenta: totalVenta,
       id_estante: selectedPercha,
       cedula_cliente: clienteSeleccionado?.cedula,
+      fecha: new Date().toISOString(), // Fecha y hora actual en formato ISO 8601
       productos: carrito.map(({ id, cantidadSeleccionada, precioTotal }) => ({
         id_producto: id,
         cantidad: cantidadSeleccionada,
@@ -176,37 +183,59 @@ function VentaArticuloOperador() {
         ))}
       </Box>
 
-      <Typography variant="h6">Carrito</Typography>
-      <List>
-        {carrito.map((producto, idx) => (
-          <ListItem key={idx}>
-            <ListItemText
-              primary={`${producto.nombre} - ${producto.cantidadSeleccionada} unidades`}
-              secondary={`Precio unitario: $${producto.precio} | Total: $${producto.precioTotal}`}
-            />
-            <ListItemSecondaryAction>
-              <IconButton edge="end" onClick={() => handleEditarProducto(idx)}>
-                <EditIcon />
-              </IconButton>
-              <IconButton edge="end" onClick={() => handleEliminarProducto(idx)}>
-                <DeleteIcon />
-              </IconButton>
-            </ListItemSecondaryAction>
-          </ListItem>
-        ))}
-      </List>
-
       {carrito.length > 0 && (
         <Box sx={{ mt: 2 }}>
-          <Typography variant="body1">
-            <strong>Total Venta: ${calcularTotalVenta()}</strong>
-          </Typography>
-          <Button variant="contained" color="primary" onClick={handleVender} sx={{ mt: 2 }}>
-            Vender
-          </Button>
-          <Button variant="outlined" color="secondary" onClick={handleCancelarVenta} sx={{ mt: 2 }}>
-            Cancelar Venta
-          </Button>
+          <Typography variant="h6">Carrito</Typography>
+          <TableContainer component={Paper} sx={{ mt: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Producto</TableCell>
+                  <TableCell align="right">Cantidad</TableCell>
+                  <TableCell align="right">Precio Unitario ($)</TableCell>
+                  <TableCell align="right">Total ($)</TableCell>
+                  <TableCell align="center">Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {carrito.map((producto, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell component="th" scope="row">
+                      {producto.nombre}
+                    </TableCell>
+                    <TableCell align="right">{producto.cantidadSeleccionada}</TableCell>
+                    <TableCell align="right">{producto.precio.toFixed(2)}</TableCell>
+                    <TableCell align="right">{producto.precioTotal.toFixed(2)}</TableCell>
+                    <TableCell align="center">
+                      <IconButton onClick={() => handleEditarProducto(idx)}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleEliminarProducto(idx)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow>
+                  <TableCell colSpan={3} align="right">
+                    <Typography variant="subtitle1"><strong>Total Venta:</strong></Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle1"><strong>${calcularTotalVenta().toFixed(2)}</strong></Typography>
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+            <Button variant="contained" color="primary" onClick={handleVender}>
+              Vender
+            </Button>
+            <Button variant="outlined" color="secondary" onClick={handleCancelarVenta}>
+              Cancelar Venta
+            </Button>
+          </Box>
         </Box>
       )}
 
@@ -253,9 +282,12 @@ const modalStyle = {
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 400,
+  maxHeight: "90vh",
+  maxWidth: "90vw",
   bgcolor: "background.paper",
   boxShadow: 24,
   p: 4,
+  overflowY: 'auto',
 };
 
 export default VentaArticuloOperador;
