@@ -15,21 +15,20 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import html2pdf from "html2pdf.js";
+import config from '../config'; 
 
 function Reportes() {
   const [reportType, setReportType] = useState("gasolina");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [reportData, setReportData] = useState({ gasolina: [], productos: [] }); // Cambiado a tener siempre un objeto con gasolina y productos
+  const [reportData, setReportData] = useState({ gasolina: [], productos: [] });
   const id_operador = localStorage.getItem("id_operador");
 
-  // Estados para filtros adicionales
   const [tipoManguera, setTipoManguera] = useState("");
   const [formaPago, setFormaPago] = useState("");
   const [servicio, setServicio] = useState("");
   const [idEstante, setIdEstante] = useState("");
 
-  // Opciones para los select
   const [tipoMangueraOptions, setTipoMangueraOptions] = useState([]);
   const [formaPagoOptions, setFormaPagoOptions] = useState([]);
   const [servicioOptions, setServicioOptions] = useState([]);
@@ -37,9 +36,8 @@ function Reportes() {
 
   useEffect(() => {
     if (reportType === "gasolina") {
-      // Cargar tipos de combustible asociados al operador
       axios
-        .get(`http://localhost:5000/mangueras/operador/${id_operador}`, {
+        .get(`${config.apiUrl}/mangueras/operador/${id_operador}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         })
         .then((response) => {
@@ -50,9 +48,8 @@ function Reportes() {
           console.error("Error al cargar tipos de manguera", error);
         });
 
-      // Cargar opciones de forma de pago
       axios
-        .get("http://localhost:5000/formapagos", {
+        .get(`${config.apiUrl}/formapagos`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         })
         .then((response) => {
@@ -62,9 +59,8 @@ function Reportes() {
           console.error("Error al cargar formas de pago", error);
         });
 
-      // Cargar opciones de servicio
       axios
-        .get("http://localhost:5000/servicios", {
+        .get(`${config.apiUrl}/servicios`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         })
         .then((response) => {
@@ -74,9 +70,8 @@ function Reportes() {
           console.error("Error al cargar servicios", error);
         });
     } else if (reportType === "productos") {
-      // Cargar perchas asignadas al operador
       axios
-        .get(`http://localhost:5000/perchas/operador/${id_operador}`, {
+        .get(`${config.apiUrl}/perchas/operador/${id_operador}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         })
         .then((response) => {
@@ -102,12 +97,12 @@ function Reportes() {
     };
 
     if (reportType === "gasolina") {
-      url = "http://localhost:5000/reporte_ventas_gasolina";
+      url = `${config.apiUrl}/reporte_ventas_gasolina`;
       if (tipoManguera) params.tipo_manguera = tipoManguera;
       if (formaPago) params.forma_pago = formaPago;
       if (servicio) params.servicio = servicio;
     } else if (reportType === "productos") {
-      url = "http://localhost:5000/reporte_ventas_producto";
+      url = `${config.apiUrl}/reporte_ventas_producto`;
       if (idEstante) params.id_estante = idEstante;
     } else if (reportType === "total") {
       await generateTotalReport();
@@ -133,7 +128,7 @@ function Reportes() {
   const generateTotalReport = async () => {
     try {
       const [gasolinaResponse, productosResponse] = await Promise.all([
-        axios.get("http://localhost:5000/reporte_ventas_gasolina", {
+        axios.get(`${config.apiUrl}/reporte_ventas_gasolina`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           params: {
             from_date: fromDate,
@@ -141,7 +136,7 @@ function Reportes() {
             id_operador: id_operador,
           },
         }),
-        axios.get("http://localhost:5000/reporte_ventas_producto", {
+        axios.get(`${config.apiUrl}/reporte_ventas_producto`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           params: {
             from_date: fromDate,
@@ -160,7 +155,6 @@ function Reportes() {
     }
   };
 
-  // Funciones para calcular los totales
   const calcularTotalesGasolina = () => {
     if (!reportData.gasolina || !Array.isArray(reportData.gasolina)) return { numeroVentas: 0, totalVentas: 0 };
 
@@ -192,7 +186,9 @@ function Reportes() {
 
       return (
         <Box>
-          <Typography variant="h6">Reporte de Ventas de Gasolina</Typography>
+          <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
+            Reporte de Ventas de Gasolina
+          </Typography>
           <Typography>
             <strong>Número de Ventas:</strong> {numeroVentas} | <strong>Total de Ventas:</strong> $
             {totalVentas.toFixed(2)}
@@ -202,7 +198,7 @@ function Reportes() {
               <Grid container spacing={2}>
                 {reportData.gasolina.map((venta, index) => (
                   <Grid item xs={12} md={6} lg={4} key={index}>
-                    <Card variant="outlined">
+                    <Card variant="outlined" sx={{ borderRadius: 2, boxShadow: 3 }}>
                       <CardContent>
                         <Typography variant="h6">ID Venta: {venta.id}</Typography>
                         <Typography>Fecha: {new Date(venta.fecha).toLocaleString()}</Typography>
@@ -228,7 +224,9 @@ function Reportes() {
 
       return (
         <Box>
-          <Typography variant="h6">Reporte de Ventas de Productos</Typography>
+          <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
+            Reporte de Ventas de Productos
+          </Typography>
           <Typography>
             <strong>Número de Ventas:</strong> {numeroVentas} | <strong>Total de Ventas:</strong> $
             {totalVentas.toFixed(2)}
@@ -238,7 +236,7 @@ function Reportes() {
               <Grid container spacing={2}>
                 {reportData.productos.map((venta, index) => (
                   <Grid item xs={12} md={6} lg={4} key={index}>
-                    <Card variant="outlined">
+                    <Card variant="outlined" sx={{ borderRadius: 2, boxShadow: 3 }}>
                       <CardContent>
                         <Typography variant="h6">ID Venta: {venta.id_venta}</Typography>
                         <Typography>Fecha: {new Date(venta.fecha).toLocaleString()}</Typography>
@@ -265,10 +263,11 @@ function Reportes() {
 
       return (
         <Box>
-          <Typography variant="h6">Reporte Total de Ventas</Typography>
+          <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
+            Reporte Total de Ventas
+          </Typography>
 
-          {/* Resumen de Gasolina */}
-          <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
+          <Paper elevation={3} sx={{ p: 2, mt: 2, borderRadius: 2 }}>
             <Typography variant="subtitle1">Ventas de Gasolina</Typography>
             <Typography>
               <strong>Número de Ventas:</strong> {totalesGasolina.numeroVentas}
@@ -278,8 +277,7 @@ function Reportes() {
             </Typography>
           </Paper>
 
-          {/* Resumen de Productos */}
-          <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
+          <Paper elevation={3} sx={{ p: 2, mt: 2, borderRadius: 2 }}>
             <Typography variant="subtitle1">Ventas de Productos</Typography>
             <Typography>
               <strong>Número de Ventas:</strong> {totalesProductos.numeroVentas}
@@ -293,7 +291,6 @@ function Reportes() {
     }
   };
 
-  // Función para generar el PDF
   const handleGeneratePDF = () => {
     const element = document.getElementById("reportContent");
 
@@ -310,7 +307,7 @@ function Reportes() {
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="h5" gutterBottom sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32' }}>
         Generar Reportes
       </Typography>
 
@@ -343,6 +340,7 @@ function Reportes() {
             fullWidth
             margin="normal"
             InputLabelProps={{ shrink: true }}
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
         </Grid>
 
@@ -355,11 +353,11 @@ function Reportes() {
             fullWidth
             margin="normal"
             InputLabelProps={{ shrink: true }}
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
         </Grid>
       </Grid>
 
-      {/* Filtros adicionales para Gasolina */}
       {reportType === "gasolina" && (
         <Box>
           <FormControl fullWidth margin="normal">
@@ -418,7 +416,6 @@ function Reportes() {
         </Box>
       )}
 
-      {/* Filtros adicionales para Productos */}
       {reportType === "productos" && (
         <FormControl fullWidth margin="normal">
           <InputLabel>Estante</InputLabel>
@@ -442,13 +439,12 @@ function Reportes() {
       <Box sx={{ mt: 2 }}>
         <Button
           variant="contained"
-          color="primary"
+          sx={{ backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}
           onClick={handleGenerateReport}
         >
           Generar Reporte
         </Button>
 
-        {/* Mostrar botón de descargar PDF si hay datos */}
         {reportData &&
           ((reportType === "gasolina" && reportData.gasolina.length > 0) ||
             (reportType === "productos" && reportData.productos.length > 0) ||
@@ -459,14 +455,13 @@ function Reportes() {
               variant="contained"
               color="secondary"
               onClick={handleGeneratePDF}
-              sx={{ ml: 2 }}
+              sx={{ ml: 2, backgroundColor: '#1976d2', '&:hover': { backgroundColor: '#1565c0' } }}
             >
               Descargar PDF
             </Button>
           )}
       </Box>
 
-      {/* Contenedor del reporte con ID para html2pdf */}
       <Box id="reportContent" sx={{ mt: 4 }}>
         {renderReportData()}
       </Box>

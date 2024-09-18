@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from "react";
-import {
-  Fab,
-  Modal,
-  Box,
-  TextField,
-  Button,
-  Typography,
-  IconButton,
-  MenuItem,
-  Tooltip,
-} from "@mui/material";
+import { Fab, Modal, Box, TextField, Button, Typography, MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CrudTable from "../components/CrudTable";
 import axios from "axios";
+import config from '../config'; 
 
 const style = {
   position: "absolute",
@@ -23,9 +12,10 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 400,
   bgcolor: "background.paper",
-  border: "2px solid #000",
+  border: "2px solid #4caf50",
   boxShadow: 24,
   p: 4,
+  fontFamily: "Poppins, sans-serif",
 };
 
 function ProductoCrud() {
@@ -35,22 +25,25 @@ function ProductoCrud() {
   const [editModal, setEditModal] = useState(false);
 
   const [newProducto, setNewProducto] = useState({
-    nombre: "",
-    precio: "",
-    cantidad: "",
+    ConceptoProducto: "",
+    PrecioVentaPublico: "",
+    StockActual: "",
+    CodigoProducto: "",
+    CodigoBarra: "",
     id_percha: "",
   });
   const [editProducto, setEditProducto] = useState({
-    nombre: "",
-    precio: "",
-    cantidad: "",
+    ConceptoProducto: "",
+    PrecioVentaPublico: "",
+    StockActual: "",
+    CodigoProducto: "",
+    CodigoBarra: "",
     id_percha: "",
   });
 
-  // Obtener la lista de productos y perchas
   const fetchProductos = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/productos", {
+      const response = await axios.get(`${config.apiUrl}/productos`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setProductos(response.data);
@@ -61,7 +54,7 @@ function ProductoCrud() {
 
   const fetchPerchas = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/perchas", {
+      const response = await axios.get(`${config.apiUrl}/perchas`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setPerchas(response.data);
@@ -75,7 +68,6 @@ function ProductoCrud() {
     fetchPerchas();
   }, []);
 
-  // Abrir/Cerrar modales
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => setOpenModal(false);
 
@@ -85,24 +77,24 @@ function ProductoCrud() {
   };
   const handleCloseEditModal = () => setEditModal(false);
 
-  // Manejar cambios en los formularios
   const handleChange = (setter) => (e) => {
     setter((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Crear un nuevo producto
   const handleSubmitProducto = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/producto", newProducto, {
+      await axios.post(`${config.apiUrl}/producto`, newProducto, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchProductos();
       handleCloseModal();
       setNewProducto({
-        nombre: "",
-        precio: "",
-        cantidad: "",
+        ConceptoProducto: "",
+        PrecioVentaPublico: "",
+        StockActual: "",
+        CodigoProducto: "",
+        CodigoBarra: "",
         id_percha: "",
       });
     } catch (error) {
@@ -110,11 +102,10 @@ function ProductoCrud() {
     }
   };
 
-  // Actualizar un producto existente
   const handleEditSubmitProducto = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/producto/${editProducto.id}`, editProducto, {
+      await axios.put(`${config.apiUrl}/producto/${editProducto.id}`, editProducto, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchProductos();
@@ -124,10 +115,9 @@ function ProductoCrud() {
     }
   };
 
-  // Eliminar un producto
   const handleDeleteProducto = async (producto) => {
     try {
-      await axios.delete(`http://localhost:5000/producto/${producto.id}`, {
+      await axios.delete(`${config.apiUrl}/producto/${producto.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchProductos();
@@ -138,19 +128,24 @@ function ProductoCrud() {
 
   return (
     <div>
-      <h2>CRUD de Productos</h2>
+      <h2 style={{ fontFamily: "Poppins, sans-serif", color: "#4caf50" }}>CRUD de Productos</h2>
 
-      {/* Botón para agregar producto */}
-      <Fab color="primary" aria-label="add" onClick={handleOpenModal} style={{ marginBottom: "20px" }}>
+      <Fab
+        color="primary"
+        aria-label="add"
+        onClick={handleOpenModal}
+        style={{ marginBottom: "20px", backgroundColor: "#72a7fc" }}
+      >
         <AddIcon />
       </Fab>
 
-      {/* Tabla de productos */}
       <CrudTable
         columns={[
-          { title: "Nombre del Producto", field: "nombre" },
-          { title: "Precio", field: "precio" },
-          { title: "Cantidad", field: "cantidad" },
+          { title: "Concepto del Producto", field: "ConceptoProducto" },
+          { title: "Precio Venta Público", field: "PrecioVentaPublico" },
+          { title: "Stock Actual", field: "StockActual" },
+          { title: "Código del Producto", field: "CodigoProducto" },
+          { title: "Código de Barra", field: "CodigoBarra" },
           {
             title: "Percha Asignada",
             field: "percha",
@@ -162,39 +157,60 @@ function ProductoCrud() {
         onDelete={handleDeleteProducto}
       />
 
-      {/* Modal para agregar nuevo producto */}
       <Modal open={openModal} onClose={handleCloseModal}>
         <Box sx={style} component="form" onSubmit={handleSubmitProducto}>
-          <Typography variant="h6" component="h2" gutterBottom>
+          <Typography variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
             Agregar Nuevo Producto
           </Typography>
-
           <TextField
-            label="Nombre del Producto"
-            name="nombre"
+            label="Concepto del Producto"
+            name="ConceptoProducto"
             fullWidth
-            value={newProducto.nombre}
+            value={newProducto.ConceptoProducto}
             onChange={handleChange(setNewProducto)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
           <TextField
-            label="Precio"
-            name="precio"
+            label="Precio Venta Público"
+            name="PrecioVentaPublico"
             fullWidth
-            value={newProducto.precio}
+            value={newProducto.PrecioVentaPublico}
             onChange={handleChange(setNewProducto)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
           <TextField
-            label="Cantidad"
-            name="cantidad"
+            label="Stock Actual"
+            name="StockActual"
             fullWidth
-            value={newProducto.cantidad}
+            value={newProducto.StockActual}
             onChange={handleChange(setNewProducto)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
+          />
+          <TextField
+            label="Código del Producto"
+            name="CodigoProducto"
+            fullWidth
+            value={newProducto.CodigoProducto}
+            onChange={handleChange(setNewProducto)}
+            margin="normal"
+            required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
+          />
+          <TextField
+            label="Código de Barra"
+            name="CodigoBarra"
+            fullWidth
+            value={newProducto.CodigoBarra}
+            onChange={handleChange(setNewProducto)}
+            margin="normal"
+            required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
           <TextField
             select
@@ -205,6 +221,7 @@ function ProductoCrud() {
             onChange={handleChange(setNewProducto)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           >
             {perchas.map((percha) => (
               <MenuItem key={percha.id} value={percha.id}>
@@ -212,46 +229,72 @@ function ProductoCrud() {
               </MenuItem>
             ))}
           </TextField>
-
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}
+          >
             Agregar
           </Button>
         </Box>
       </Modal>
 
-      {/* Modal para editar producto */}
       <Modal open={editModal} onClose={handleCloseEditModal}>
         <Box sx={style} component="form" onSubmit={handleEditSubmitProducto}>
-          <Typography variant="h6" component="h2" gutterBottom>
+          <Typography variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
             Editar Producto
           </Typography>
-
           <TextField
-            label="Nombre del Producto"
-            name="nombre"
+            label="Concepto del Producto"
+            name="ConceptoProducto"
             fullWidth
-            value={editProducto.nombre}
+            value={editProducto.ConceptoProducto}
             onChange={handleChange(setEditProducto)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
           <TextField
-            label="Precio"
-            name="precio"
+            label="Precio Venta Público"
+            name="PrecioVentaPublico"
             fullWidth
-            value={editProducto.precio}
+            value={editProducto.PrecioVentaPublico}
             onChange={handleChange(setEditProducto)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
           <TextField
-            label="Cantidad"
-            name="cantidad"
+            label="Stock Actual"
+            name="StockActual"
             fullWidth
-            value={editProducto.cantidad}
+            value={editProducto.StockActual}
             onChange={handleChange(setEditProducto)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
+          />
+          <TextField
+            label="Código del Producto"
+            name="CodigoProducto"
+            fullWidth
+            value={editProducto.CodigoProducto}
+            onChange={handleChange(setEditProducto)}
+            margin="normal"
+            required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
+          />
+          <TextField
+            label="Código de Barra"
+            name="CodigoBarra"
+            fullWidth
+            value={editProducto.CodigoBarra}
+            onChange={handleChange(setEditProducto)}
+            margin="normal"
+            required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
           <TextField
             select
@@ -262,6 +305,7 @@ function ProductoCrud() {
             onChange={handleChange(setEditProducto)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           >
             {perchas.map((percha) => (
               <MenuItem key={percha.id} value={percha.id}>
@@ -269,8 +313,13 @@ function ProductoCrud() {
               </MenuItem>
             ))}
           </TextField>
-
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}
+          >
             Guardar Cambios
           </Button>
         </Box>

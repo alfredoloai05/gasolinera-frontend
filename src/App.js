@@ -11,10 +11,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={isLoggedIn ? (userRole === "admin" ? <Navigate to="/admin" /> : <Navigate to="/operador" />) : <Login />} />
+        <Route path="/login" element={isLoggedIn ? (userRole === "admin" ? <Navigate to="/admin" /> : <Navigate to="/operador" />) : <Login />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/operador" element={<OperadorPage />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
   );

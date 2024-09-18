@@ -9,10 +9,9 @@ import {
   IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CrudTable from "../components/CrudTable";
 import axios from "axios";
+import config from '../config'; 
 
 const style = {
   position: "absolute",
@@ -21,16 +20,17 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 400,
   bgcolor: "background.paper",
-  border: "2px solid #000",
   boxShadow: 24,
   p: 4,
+  borderRadius: 2,
+  fontFamily: "Poppins, sans-serif",
 };
 
 function OperadoresCrud() {
   const [operadores, setOperadores] = useState([]);
-  const [openAddModal, setOpenAddModal] = useState(false); // Modal para agregar
-  const [openEditModal, setOpenEditModal] = useState(false); // Modal para editar
-  const [openPasswordModal, setOpenPasswordModal] = useState(false); // Modal para cambiar contraseña
+  const [openAddModal, setOpenAddModal] = useState(false);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [openPasswordModal, setOpenPasswordModal] = useState(false);
   const [newOperador, setNewOperador] = useState({
     nombre: "",
     apellido: "",
@@ -52,7 +52,7 @@ function OperadoresCrud() {
 
   const fetchOperadores = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/operadores", {
+      const response = await axios.get(`${config.apiUrl}/operadores`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setOperadores(response.data);
@@ -93,7 +93,7 @@ function OperadoresCrud() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/operador", newOperador, {
+      await axios.post(`${config.apiUrl}/operador`, newOperador, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchOperadores();
@@ -114,7 +114,7 @@ function OperadoresCrud() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/operador/${editOperador.id}`, editOperador, {
+      await axios.put(`${config.apiUrl}/operador/${editOperador.id}`, editOperador, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchOperadores();
@@ -131,7 +131,7 @@ function OperadoresCrud() {
       return;
     }
     try {
-      await axios.put(`http://localhost:5000/operador/${editOperador.id}`, { clave: newPassword }, {
+      await axios.put(`${config.apiUrl}/operador/${editOperador.id}`, { clave: newPassword }, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       handleClosePasswordModal();
@@ -144,7 +144,7 @@ function OperadoresCrud() {
 
   const handleDelete = async (operador) => {
     try {
-      await axios.delete(`http://localhost:5000/operador/${operador.id}`, {
+      await axios.delete(`${config.apiUrl}/operador/${operador.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchOperadores();
@@ -155,9 +155,20 @@ function OperadoresCrud() {
 
   return (
     <div>
-      <h2>CRUD de Operadores</h2>
+      <Typography
+        variant="h5"
+        gutterBottom
+        sx={{ fontFamily: "Poppins, sans-serif", color: "#2e7d32" }}
+      >
+        CRUD de Operadores
+      </Typography>
 
-      <Fab color="primary" aria-label="add" onClick={handleOpenAddModal} style={{ marginBottom: "20px" }}>
+      <Fab
+        color="success"
+        aria-label="add"
+        onClick={handleOpenAddModal}
+        sx={{ marginBottom: "20px", backgroundColor: "#72a7fc", color: "white" }}
+      >
         <AddIcon />
       </Fab>
 
@@ -176,7 +187,13 @@ function OperadoresCrud() {
       {/* Modal para agregar nuevo operador */}
       <Modal open={openAddModal} onClose={handleCloseAddModal} aria-labelledby="modal-modal-title">
         <Box sx={style} component="form" onSubmit={handleSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+          <Typography
+            id="modal-modal-title"
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{ fontFamily: "Poppins, sans-serif", color: "#388e3c" }}
+          >
             Agregar Nuevo Operador
           </Typography>
 
@@ -187,7 +204,18 @@ function OperadoresCrud() {
           <TextField label="Correo" name="correo" fullWidth value={newOperador.correo} onChange={handleChange} margin="normal" required />
           <TextField label="Clave" name="clave" type="password" fullWidth value={newOperador.clave} onChange={handleChange} margin="normal" required />
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              mt: 2,
+              backgroundColor: "#4caf50",
+              color: "white",
+              "&:hover": { backgroundColor: "#388e3c" },
+              fontFamily: "Poppins, sans-serif",
+            }}
+            fullWidth
+          >
             Agregar
           </Button>
         </Box>
@@ -196,7 +224,13 @@ function OperadoresCrud() {
       {/* Modal para editar operador */}
       <Modal open={openEditModal} onClose={handleCloseEditModal} aria-labelledby="modal-modal-title">
         <Box sx={style} component="form" onSubmit={handleEditSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+          <Typography
+            id="modal-modal-title"
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{ fontFamily: "Poppins, sans-serif", color: "#388e3c" }}
+          >
             Editar Operador
           </Typography>
 
@@ -205,13 +239,24 @@ function OperadoresCrud() {
           <TextField label="Cédula" name="cedula" fullWidth value={editOperador.cedula} onChange={handleEditChange} margin="normal" required />
           <TextField label="Usuario" name="usuario" fullWidth value={editOperador.usuario} onChange={handleEditChange} margin="normal" required />
           <TextField label="Correo" name="correo" fullWidth value={editOperador.correo} onChange={handleEditChange} margin="normal" required />
-          
+
           <TextField label="Clave" value="*******" margin="normal" fullWidth disabled />
           <Button onClick={handleOpenPasswordModal} variant="outlined" color="secondary" fullWidth sx={{ mt: 2 }}>
             Cambiar Clave
           </Button>
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              mt: 2,
+              backgroundColor: "#4caf50",
+              color: "white",
+              "&:hover": { backgroundColor: "#388e3c" },
+              fontFamily: "Poppins, sans-serif",
+            }}
+            fullWidth
+          >
             Guardar Cambios
           </Button>
         </Box>
@@ -220,14 +265,31 @@ function OperadoresCrud() {
       {/* Modal para cambiar la contraseña */}
       <Modal open={openPasswordModal} onClose={handleClosePasswordModal} aria-labelledby="modal-password-title">
         <Box sx={style} component="form" onSubmit={handlePasswordSubmit}>
-          <Typography id="modal-password-title" variant="h6" component="h2" gutterBottom>
+          <Typography
+            id="modal-password-title"
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{ fontFamily: "Poppins, sans-serif", color: "#388e3c" }}
+          >
             Cambiar Contraseña
           </Typography>
 
           <TextField label="Nueva Contraseña" name="newPassword" type="password" fullWidth value={newPassword} onChange={(e) => setNewPassword(e.target.value)} margin="normal" required />
           <TextField label="Confirmar Contraseña" name="confirmPassword" type="password" fullWidth value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} margin="normal" required />
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              mt: 2,
+              backgroundColor: "#4caf50",
+              color: "white",
+              "&:hover": { backgroundColor: "#388e3c" },
+              fontFamily: "Poppins, sans-serif",
+            }}
+            fullWidth
+          >
             Actualizar Contraseña
           </Button>
         </Box>

@@ -22,6 +22,7 @@ import Simulador from "../components/Simulador";
 import Lados from "../components/Lados";
 import Escaner from "../components/Detector";
 import VentaCliente from "../components/VentaCliente";
+import config from '../config'; 
 
 const getFechaActual = () => {
   return new Date().toISOString();
@@ -54,7 +55,7 @@ function DespachoOperador() {
 
   const cargarFormasPago = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/formapagos", {
+      const response = await axios.get(`${config.apiUrl}/formapagos`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setFormasPago(response.data);
@@ -80,7 +81,7 @@ function DespachoOperador() {
   const finalizarVenta = async (id, galones, total) => {
     try {
       await axios.put(
-        `http://localhost:5000/venta_gasolina/${id}/finalizar`,
+        `${config.apiUrl}/venta_gasolina/${id}/finalizar`,
         { galones, total, fecha: new Date().toISOString() },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
@@ -105,7 +106,7 @@ function DespachoOperador() {
 
   const cargarServicios = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/servicios", {
+      const response = await axios.get(`${config.apiUrl}/servicios`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setServicios(response.data);
@@ -120,7 +121,7 @@ function DespachoOperador() {
 
   const cargarVentasActivas = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/ventas_activas", {
+      const response = await axios.get(`${config.apiUrl}/ventas_activas`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setVentasActivas(response.data);
@@ -132,9 +133,9 @@ function DespachoOperador() {
   const iniciarVenta = async (ventaData) => {
     try {
       const id_operador = localStorage.getItem("id_operador");
-      const ventaConOperador = { ...ventaData, id_operador, fecha: getFechaActual() }; // Se establece la fecha actual automáticamente
+      const ventaConOperador = { ...ventaData, id_operador, fecha: getFechaActual() };
 
-      const response = await axios.post("http://localhost:5000/venta_gasolina", ventaConOperador, {
+      const response = await axios.post(`${config.apiUrl}/venta_gasolina`, ventaConOperador, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
@@ -212,7 +213,7 @@ function DespachoOperador() {
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="h5" gutterBottom sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
         Ventas Activas
       </Typography>
 
@@ -225,10 +226,12 @@ function DespachoOperador() {
               border: venta.simulacionTerminada ? "3px solid #4caf50" : "1px solid grey",
               backgroundColor: venta.simulacionTerminada ? "#e8f5e9" : "white",
               transition: "0.3s",
+              borderRadius: 2,
+              boxShadow: 3,
             }}
           >
             <CardContent>
-              <Typography variant="h6">
+              <Typography variant="h6" sx={{ color: '#388e3c', fontWeight: 'bold' }}>
                 {venta.lado} - {venta.tipo_manguera}
               </Typography>
               <Typography variant="body2">Cliente: {venta.cedula_cliente}</Typography>
@@ -252,6 +255,7 @@ function DespachoOperador() {
                 size="small"
                 onClick={() => finalizarVenta(venta.id, venta.galones, venta.total)}
                 disabled={!venta.simulacionTerminada}
+                sx={{ color: '#4caf50' }}
               >
                 Finalizar
               </Button>
@@ -260,21 +264,21 @@ function DespachoOperador() {
         ))}
       </Box>
 
-      <Button variant="contained" onClick={abrirModalVenta}>
+      <Button variant="contained" onClick={abrirModalVenta} sx={{ backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}>
         Iniciar Nueva Venta
       </Button>
 
       {/* Modal para iniciar nueva venta */}
       <Modal open={isVentaModalOpen} onClose={cerrarModalVenta}>
         <Box sx={{ ...modalStyle }}>
-          <Typography variant="h6">
+          <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32' }}>
             Iniciar Nueva Venta {clienteInfo.nombre && `- ${clienteInfo.nombre} ${clienteInfo.apellido}`}
           </Typography>
 
           <Button
             variant="outlined"
             onClick={() => setIsMangueraModalOpen(true)}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, borderColor: '#4caf50', color: '#4caf50', '&:hover': { borderColor: '#388e3c', color: '#388e3c' } }}
           >
             {selectedManguera ? `${selectedLado} - ${selectedManguera.tipo_combustible}` : "Seleccionar Manguera"}
           </Button>
@@ -290,11 +294,12 @@ function DespachoOperador() {
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton onClick={abrirBusquedaCliente}>
-                    <SearchIcon />
+                    <SearchIcon sx={{ color: '#4caf50' }} />
                   </IconButton>
                 </InputAdornment>
               ),
             }}
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
 
           {clienteInfo.placas.length > 0 ? (
@@ -324,11 +329,12 @@ function DespachoOperador() {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton onClick={abrirEscanerYBuscarPlaca}>
-                      <CameraAltIcon />
+                      <CameraAltIcon sx={{ color: '#4caf50' }} />
                     </IconButton>
                   </InputAdornment>
                 ),
               }}
+              sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
           )}
 
@@ -364,10 +370,9 @@ function DespachoOperador() {
 
           <Button
             variant="contained"
-            color="primary"
             onClick={() => iniciarVenta({ ...formData, tipo_manguera: selectedManguera.tipo_combustible })}
             disabled={!selectedManguera}
-            sx={{ mt: 2 }}
+            sx={{ mt: 2, backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}
           >
             Iniciar Venta
           </Button>
@@ -376,22 +381,22 @@ function DespachoOperador() {
 
       {/* Modal para seleccionar manguera */}
       <Modal open={isMangueraModalOpen} onClose={() => setIsMangueraModalOpen(false)}>
-        <Box sx={{ ...modalStyle, overflowY: "auto", overflowX: "auto" }}>
-          <Typography variant="h6">Seleccionar Manguera</Typography>
+        <Box sx={{ ...modalStyle, overflowY: "auto" }}>
+          <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32' }}></Typography>
           <Lados onSeleccionManguera={handleSeleccionManguera} />
         </Box>
       </Modal>
 
       {/* Modal para escanear placa */}
       <Modal open={isEscanerModalOpen} onClose={() => setIsEscanerModalOpen(false)}>
-        <Box sx={{ ...modalStyle, overflowY: "auto", overflowX: "auto" }}>
+        <Box sx={{ ...modalStyle, overflowY: "auto" }}>
           <Escaner onDatosDetectados={manejarDatosEscaner} placaManual={formData.numero_placa} />
         </Box>
       </Modal>
 
       {/* Modal para buscar cliente por cédula */}
       <Modal open={isClienteModalOpen} onClose={() => setIsClienteModalOpen(false)}>
-        <Box sx={{ ...modalStyle, overflowY: "auto", overflowX: "auto" }}>
+        <Box sx={{ ...modalStyle, overflowY: "auto" }}>
           <VentaCliente cedulaInicial={formData.cedula_cliente} onClienteEncontrado={manejarDatosCliente} />
         </Box>
       </Modal>
@@ -409,6 +414,7 @@ const modalStyle = {
   maxWidth: "90vw",
   bgcolor: "background.paper",
   boxShadow: 24,
+  borderRadius: 2,
   p: 4,
 };
 

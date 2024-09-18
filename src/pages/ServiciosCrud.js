@@ -6,13 +6,11 @@ import {
   TextField,
   Button,
   Typography,
-  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CrudTable from "../components/CrudTable";
 import axios from "axios";
+import config from '../config'; 
 
 const style = {
   position: "absolute",
@@ -21,9 +19,10 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 400,
   bgcolor: "background.paper",
-  border: "2px solid #000",
+  border: "2px solid #4caf50", // Borde verde suave
   boxShadow: 24,
   p: 4,
+  fontFamily: "Poppins, sans-serif", // Fuente personalizada
 };
 
 function ServiciosCrud() {
@@ -41,7 +40,7 @@ function ServiciosCrud() {
   // Obtener la lista de servicios
   const fetchServicios = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/servicios", {
+      const response = await axios.get(`${config.apiUrl}/servicios`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setServicios(response.data);
@@ -76,7 +75,7 @@ function ServiciosCrud() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/servicio", newServicio, {
+      await axios.post(`${config.apiUrl}/servicio`, newServicio, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchServicios();
@@ -90,7 +89,7 @@ function ServiciosCrud() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/servicio/${editServicio.id}`, editServicio, {
+      await axios.put(`${config.apiUrl}/servicio/${editServicio.id}`, editServicio, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchServicios();
@@ -102,7 +101,7 @@ function ServiciosCrud() {
 
   const handleDelete = async (servicio) => {
     try {
-      await axios.delete(`http://localhost:5000/servicio/${servicio.id}`, {
+      await axios.delete(`${config.apiUrl}/servicio/${servicio.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchServicios();
@@ -113,13 +112,13 @@ function ServiciosCrud() {
 
   return (
     <div>
-      <h2>CRUD de Servicios</h2>
+      <h2 style={{ fontFamily: "Poppins, sans-serif", color: "#4caf50" }}>CRUD de Servicios</h2>
 
       <Fab
         color="primary"
         aria-label="add"
         onClick={handleOpenAddModal}
-        style={{ marginBottom: "20px" }}
+        style={{ marginBottom: "20px", backgroundColor: "#72a7fc" }}
       >
         <AddIcon />
       </Fab>
@@ -134,7 +133,7 @@ function ServiciosCrud() {
       {/* Modal para agregar nuevo servicio */}
       <Modal open={openAddModal} onClose={handleCloseAddModal} aria-labelledby="modal-modal-title">
         <Box sx={style} component="form" onSubmit={handleSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
             Agregar Nuevo Servicio
           </Typography>
 
@@ -146,6 +145,7 @@ function ServiciosCrud() {
             onChange={handleChange}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
 
           <Button
@@ -153,7 +153,7 @@ function ServiciosCrud() {
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 2 }}
+            sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}
           >
             Agregar
           </Button>
@@ -163,7 +163,7 @@ function ServiciosCrud() {
       {/* Modal para editar servicio */}
       <Modal open={openEditModal} onClose={handleCloseEditModal} aria-labelledby="modal-modal-title">
         <Box sx={style} component="form" onSubmit={handleEditSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
             Editar Servicio
           </Typography>
 
@@ -175,6 +175,7 @@ function ServiciosCrud() {
             onChange={handleEditChange}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
 
           <Button
@@ -182,7 +183,7 @@ function ServiciosCrud() {
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 2 }}
+            sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}
           >
             Guardar Cambios
           </Button>

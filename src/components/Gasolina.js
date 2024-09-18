@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import axios from "axios";
+import config from '../config'; 
 
 function Gasolina({ manguera, cliente, formaPago, servicio, fechaVenta, onVentaIniciada }) {
   const [galones, setGalones] = useState(0);
   const [total, setTotal] = useState(0);
   const [isVentaIniciada, setIsVentaIniciada] = useState(false);
   const [intervalId, setIntervalId] = useState(null);
-  const [ventaData, setVentaData] = useState(null); // Estado para almacenar los datos de la venta
+  const [ventaData, setVentaData] = useState(null); 
 
-  const precioPorGalon = 2.5; // Precio fijo por galón (puedes ajustarlo según sea necesario)
+  const precioPorGalon = 2.5; 
 
   useEffect(() => {
-    // Limpiar el intervalo si el componente se desmonta
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
@@ -20,55 +20,49 @@ function Gasolina({ manguera, cliente, formaPago, servicio, fechaVenta, onVentaI
     };
   }, [intervalId]);
 
-  // Iniciar la venta y empezar a incrementar los galones
   const iniciarVenta = async () => {
     const dataParaEnviar = {
       tipo_manguera: manguera.tipo_combustible,
       cedula_cliente: cliente.cedula,
-      numero_placa: cliente.placas[0]?.numero || "", // Asegúrate de que se selecciona una placa válida
+      numero_placa: cliente.placas[0]?.numero || "",
       servicio,
       forma_pago: formaPago,
       galones: 0,
       total: 0,
-      fecha: fechaVenta.format("YYYY-MM-DD"), // Fecha en formato adecuado
+      fecha: fechaVenta.format("YYYY-MM-DD"), 
     };
 
-    // Mostrar el mensaje con los datos que se van a enviar
     setVentaData(dataParaEnviar); 
 
-    // Crear la venta en el backend
     try {
-      const response = await axios.post("http://localhost:5000/venta_gasolina", dataParaEnviar, {
+      const response = await axios.post(`${config.apiUrl}/venta_gasolina`, dataParaEnviar, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
-      // Empezar la simulación de la venta
       const id = setInterval(() => {
-        setGalones((prev) => prev + 0.1); // Aumentar galones
-        setTotal((prev) => prev + precioPorGalon * 0.1); // Aumentar total según los galones
-      }, 1000); // Incrementar cada segundo
+        setGalones((prev) => prev + 0.1); 
+        setTotal((prev) => prev + precioPorGalon * 0.1); 
+      }, 1000);
 
       setIsVentaIniciada(true);
       setIntervalId(id);
-      onVentaIniciada(); // Minimizar la venta
+      onVentaIniciada(); 
     } catch (error) {
       console.error("Error al iniciar la venta", error);
     }
   };
 
-  // Finalizar la venta
   const finalizarVenta = async () => {
-    clearInterval(intervalId); // Detener la simulación
+    clearInterval(intervalId); 
 
     try {
-      // Actualizar la venta con los galones y total
       const ventaData = {
         galones,
         total,
         fecha: fechaVenta.format("YYYY-MM-DD"),
       };
 
-      await axios.put(`http://localhost:5000/venta_gasolina/${manguera.id}/finalizar`, ventaData, {
+      await axios.put(`${config.apiUrl}/venta_gasolina/${manguera.id}/finalizar`, ventaData, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
@@ -79,11 +73,10 @@ function Gasolina({ manguera, cliente, formaPago, servicio, fechaVenta, onVentaI
   };
 
   return (
-    <Box sx={{ mt: 3 }}>
-      {/* Mostrar los datos que se enviarán antes de iniciar la venta */}
+    <Box sx={{ mt: 3, p: 3, backgroundColor: "#f0f9f4", borderRadius: "8px", boxShadow: 3 }}>
       {ventaData && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h6" color="secondary">Se enviarán estos datos:</Typography>
+        <Box sx={{ mb: 2, p: 2, backgroundColor: "#e0f2e9", borderRadius: "8px" }}>
+          <Typography variant="h6" color="primary">Datos de la Venta:</Typography>
           <Typography variant="body1">Tipo de Manguera: {ventaData.tipo_manguera}</Typography>
           <Typography variant="body1">Cédula Cliente: {ventaData.cedula_cliente}</Typography>
           <Typography variant="body1">Placa: {ventaData.numero_placa}</Typography>
@@ -103,7 +96,7 @@ function Gasolina({ manguera, cliente, formaPago, servicio, fechaVenta, onVentaI
           </Button>
         </Box>
       ) : (
-        <Button variant="contained" color="primary" onClick={iniciarVenta}>
+        <Button variant="contained" color="primary" sx={{ backgroundColor: "#4caf50" }} onClick={iniciarVenta}>
           Iniciar Venta
         </Button>
       )}

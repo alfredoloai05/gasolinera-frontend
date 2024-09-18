@@ -1,19 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
 import Webcam from "react-webcam";
-import { Box, Button, Typography, Modal, TextField } from "@mui/material";
+import { Box, Button, Typography, Modal, TextField, CircularProgress, IconButton, MenuItem } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
+import config from '../config'; 
 
 const Escaner = ({ onDatosDetectados, placaManual }) => {
   const [capturando, setCapturando] = useState(false);
   const [placaDetectada, setPlacaDetectada] = useState(null);
   const [creandoCliente, setCreandoCliente] = useState(false);
-  const [openCreateModal, setOpenCreateModal] = useState(false); // Controla el modal para crear cliente
+  const [openCreateModal, setOpenCreateModal] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState({
     cedula: "",
     nombre: "",
     apellido: "",
     correo: "",
     direccion: "",
+    telefono: "",
+    tipo_identificacion: "C",
   });
 
   const webcamRef = useRef(null);
@@ -25,11 +29,21 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
 
   useEffect(() => {
     if (placaManual) {
-      buscarPlaca(placaManual); // Iniciar búsqueda automática si la placa viene del padre
+      buscarPlaca(placaManual);
     }
-  }, [placaManual]); // Ejecutar el efecto solo cuando el valor de placaManual cambia
+  }, [placaManual]);
 
-  // Captura la imagen del video y envía al backend
+  useEffect(() => {
+    const { cedula } = nuevoCliente;
+    if (cedula.length === 10) {
+      setNuevoCliente((prev) => ({ ...prev, tipo_identificacion: "C" }));
+    } else if (cedula.length === 13) {
+      setNuevoCliente((prev) => ({ ...prev, tipo_identificacion: "R" }));
+    } else {
+      setNuevoCliente((prev) => ({ ...prev, tipo_identificacion: "P" }));
+    }
+  }, [nuevoCliente.cedula]);
+
   const capturarImagen = async () => {
     setCapturando(true);
     const imageSrc = webcamRef.current.getScreenshot();
@@ -39,63 +53,87 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
     formData.append("file", blob, "captura.jpg");
 
     try {
-      const response = await axios.post("http://localhost:5000/detectar-placa", formData, {
+      const response = await axios.post(`${config.apiUrl}/detectar-placa`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setPlacaDetectada(response.data.resultado);
-      setCapturando(false);
-      buscarPlaca(response.data.resultado); // Buscar la placa detectada
+      buscarPlaca(response.data.resultado);
     } catch (error) {
       console.error("Error al detectar la placa:", error);
+    } finally {
       setCapturando(false);
     }
   };
 
-  // Función para buscar la placa en el backend
   const buscarPlaca = async (placa) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`http://localhost:5000/placa/${placa}/cliente`, {
+      const response = await axios.get(`${config.apiUrl}/placa/${placa}/cliente`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const { cedula, nombre, apellido } = response.data;
-      onDatosDetectados({ placa, cedula, nombre, apellido }); // Devolver los datos al componente padre
+      onDatosDetectados({ placa, cedula, nombre, apellido });
     } catch (error) {
       if (error.response && error.response.status === 404) {
         setPlacaDetectada(placa);
-        setCreandoCliente(true); // Indica que no se encontró un cliente y se debe crear uno nuevo
-        setOpenCreateModal(true); // Abrir modal para crear cliente
+        setCreandoCliente(true);
+        setOpenCreateModal(true);
       } else {
         console.error("Error al buscar la placa:", error);
       }
     }
   };
 
-  // Función para manejar los cambios en los campos del cliente
   const handleClienteChange = (e) => {
     setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value });
   };
 
-  // Función para crear un nuevo cliente
+  const buscarClientePorCedula = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${config.apiUrl}/cliente/cedula/${nuevoCliente.cedula}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Cliente encontrado, asignar placa directamente
+      const confirmar = window.confirm("Cliente encontrado. ¿Deseas asignar esta placa al cliente existente?");
+      if (confirmar) {
+        await asignarPlaca(nuevoCliente.cedula);
+        onDatosDetectados({
+          placa: placaDetectada,
+          cedula: response.data.cedula,
+          nombre: response.data.nombre,
+          apellido: response.data.apellido,
+        });
+        setOpenCreateModal(false);
+        setCreandoCliente(false);
+      }
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        alert("Cliente no encontrado. Continúa con el registro manual.");
+      } else {
+        console.error("Error al buscar el cliente por cédula:", error);
+      }
+    }
+  };
+
   const crearCliente = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await axios.post("http://localhost:5000/cliente", nuevoCliente, {
+      await axios.post(`${config.apiUrl}/cliente`, nuevoCliente, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setOpenCreateModal(false); // Cerrar modal después de crear el cliente
+      setOpenCreateModal(false);
       setCreandoCliente(false);
 
-      // Preguntar si desea asignar la placa al cliente
       const confirmar = window.confirm("¿Deseas asignar la placa a este nuevo cliente?");
       if (confirmar) {
         await asignarPlaca(nuevoCliente.cedula);
       }
 
-      // Pasar los datos del nuevo cliente al componente padre
       onDatosDetectados({
         placa: placaDetectada,
         cedula: nuevoCliente.cedula,
@@ -107,12 +145,11 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
     }
   };
 
-  // Función para asignar la placa al cliente creado
   const asignarPlaca = async (cedula_cliente) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:5000/placa",
+        `${config.apiUrl}/placa`,
         {
           numero: placaDetectada,
           cedula_cliente,
@@ -125,49 +162,93 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-      <Typography variant="h5">Escáner de Placas</Typography>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 2,
+        p: 2,
+        boxShadow: 3,
+        borderRadius: 2,
+        backgroundColor: '#f0f4f4',
+        maxWidth: 500,
+        margin: "auto",
+      }}
+    >
+      <Typography variant="h5" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
+        Escáner de Placas
+      </Typography>
 
       {placaDetectada && !creandoCliente ? (
-        <Typography variant="h6" color="primary">
+        <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#4caf50', fontWeight: 'bold' }}>
           Placa Detectada: {placaDetectada}
         </Typography>
       ) : !placaManual && !creandoCliente ? (
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          videoConstraints={videoConstraints}
-        />
+        <Box
+          sx={{
+            width: 480,
+            height: 320,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            overflow: "hidden",
+            borderRadius: 2,
+            boxShadow: 3,
+            mb: 2,
+          }}
+        >
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            videoConstraints={videoConstraints}
+            style={{ borderRadius: '8px' }}
+          />
+        </Box>
       ) : null}
 
-      {/* Si no estamos creando un cliente, mostrar botón para capturar */}
       {!creandoCliente && !placaManual && (
         <Button
           variant="contained"
-          color="primary"
           onClick={capturarImagen}
           disabled={capturando}
+          sx={{
+            mt: 2,
+            fontFamily: "Poppins, sans-serif",
+            backgroundColor: '#4caf50',
+            color: 'white',
+            boxShadow: 2,
+            '&:hover': {
+              backgroundColor: '#388e3c',
+            },
+          }}
         >
-          {capturando ? "Detectando..." : "Capturar/Buscar Placa"}
+          {capturando ? <CircularProgress size={24} color="inherit" /> : "Capturar/Buscar Placa"}
         </Button>
       )}
 
       {creandoCliente && (
         <Modal open={openCreateModal} onClose={() => setOpenCreateModal(false)}>
           <Box sx={modalStyle}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32' }}>
               Crear Nuevo Cliente
             </Typography>
-            <TextField
-              label="Cédula"
-              name="cedula"
-              value={nuevoCliente.cedula}
-              onChange={handleClienteChange}
-              fullWidth
-              margin="normal"
-              required
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TextField
+                label="Cédula"
+                name="cedula"
+                value={nuevoCliente.cedula}
+                onChange={handleClienteChange}
+                fullWidth
+                margin="normal"
+                required
+                sx={{ backgroundColor: 'white', borderRadius: 1 }}
+              />
+              <IconButton onClick={buscarClientePorCedula} sx={{ mt: 1 }}>
+                <SearchIcon />
+              </IconButton>
+            </Box>
             <TextField
               label="Nombre"
               name="nombre"
@@ -176,6 +257,7 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
               fullWidth
               margin="normal"
               required
+              sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
             <TextField
               label="Apellido"
@@ -185,6 +267,7 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
               fullWidth
               margin="normal"
               required
+              sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
             <TextField
               label="Correo"
@@ -194,6 +277,7 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
               fullWidth
               margin="normal"
               required
+              sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
             <TextField
               label="Dirección"
@@ -203,12 +287,45 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
               fullWidth
               margin="normal"
               required
+              sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
+            <TextField
+              label="Teléfono"
+              name="telefono"
+              value={nuevoCliente.telefono}
+              onChange={handleClienteChange}
+              fullWidth
+              margin="normal"
+              required
+              sx={{ backgroundColor: 'white', borderRadius: 1 }}
+            />
+            <TextField
+              select
+              label="Tipo de Identificación"
+              name="tipo_identificacion"
+              value={nuevoCliente.tipo_identificacion}
+              onChange={handleClienteChange}
+              fullWidth
+              margin="normal"
+              required
+              sx={{ backgroundColor: 'white', borderRadius: 1 }}
+            >
+              <MenuItem value="C">Cédula</MenuItem>
+              <MenuItem value="P">Pasaporte</MenuItem>
+              <MenuItem value="R">RUC</MenuItem>
+            </TextField>
             <Button
               variant="contained"
-              color="primary"
               onClick={crearCliente}
-              sx={{ mt: 2 }}
+              sx={{
+                mt: 2,
+                fontFamily: "Poppins, sans-serif",
+                backgroundColor: '#4caf50',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: '#388e3c',
+                },
+              }}
               fullWidth
             >
               Crear Cliente
@@ -230,6 +347,7 @@ const modalStyle = {
   bgcolor: "background.paper",
   boxShadow: 24,
   p: 4,
+  borderRadius: 2,
 };
 
 export default Escaner;

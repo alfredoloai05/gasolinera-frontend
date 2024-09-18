@@ -7,14 +7,11 @@ import {
   Button,
   Typography,
   MenuItem,
-  IconButton,
-  Tooltip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CrudTable from "../components/CrudTable";
 import axios from "axios";
+import config from '../config'; 
 
 const style = {
   position: "absolute",
@@ -23,9 +20,10 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 400,
   bgcolor: "background.paper",
-  border: "2px solid #000",
+  border: "2px solid #4caf50", 
   boxShadow: 24,
   p: 4,
+  fontFamily: "Poppins, sans-serif", 
 };
 
 function PerchasCrud() {
@@ -39,7 +37,7 @@ function PerchasCrud() {
   // Obtener la lista de perchas
   const fetchPerchas = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/perchas", {
+      const response = await axios.get(`${config.apiUrl}/perchas`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setPerchas(response.data);
@@ -51,7 +49,7 @@ function PerchasCrud() {
   // Obtener la lista de grupos disponibles
   const fetchGrupos = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/grupos", {
+      const response = await axios.get(`${config.apiUrl}/grupos`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setGrupos(response.data);
@@ -76,14 +74,12 @@ function PerchasCrud() {
   };
   const handleCloseEditModal = () => setOpenEditModal(false);
 
-  // Manejar cambios en el formulario de agregar o editar
   const handleChange = (setter) => (e) => setter((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  // Función para enviar el formulario de crear una nueva percha
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/percha", newPercha, {
+      await axios.post(`${config.apiUrl}/percha`, newPercha, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchPerchas();
@@ -94,11 +90,10 @@ function PerchasCrud() {
     }
   };
 
-  // Función para enviar el formulario de editar una percha
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/percha/${editPercha.id}`, editPercha, {
+      await axios.put(`${config.apiUrl}/percha/${editPercha.id}`, editPercha, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchPerchas();
@@ -111,7 +106,7 @@ function PerchasCrud() {
   // Función para eliminar una percha
   const handleDelete = async (percha) => {
     try {
-      await axios.delete(`http://localhost:5000/percha/${percha.id}`, {
+      await axios.delete(`${config.apiUrl}/percha/${percha.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchPerchas();
@@ -122,14 +117,14 @@ function PerchasCrud() {
 
   return (
     <div>
-      <h2>CRUD de Perchas</h2>
+      <h2 style={{ fontFamily: "Poppins, sans-serif", color: "#4caf50" }}>CRUD de Perchas</h2>
 
       {/* Botón para abrir el modal de agregar */}
       <Fab
         color="primary"
         aria-label="add"
         onClick={handleOpenAddModal}
-        style={{ marginBottom: "20px" }}
+        style={{ marginBottom: "20px", backgroundColor: "#72a7fc" }}
       >
         <AddIcon />
       </Fab>
@@ -152,7 +147,7 @@ function PerchasCrud() {
       {/* Modal para agregar una nueva percha */}
       <Modal open={openAddModal} onClose={handleCloseAddModal}>
         <Box sx={style} component="form" onSubmit={handleSubmit}>
-          <Typography variant="h6" component="h2" gutterBottom>
+          <Typography variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
             Agregar Nueva Percha
           </Typography>
 
@@ -164,6 +159,7 @@ function PerchasCrud() {
             onChange={handleChange(setNewPercha)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
 
           <TextField
@@ -175,6 +171,7 @@ function PerchasCrud() {
             onChange={handleChange(setNewPercha)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           >
             {grupos.map((grupo) => (
               <MenuItem key={grupo.id} value={grupo.id}>
@@ -183,7 +180,13 @@ function PerchasCrud() {
             ))}
           </TextField>
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}
+          >
             Agregar
           </Button>
         </Box>
@@ -192,7 +195,7 @@ function PerchasCrud() {
       {/* Modal para editar una percha */}
       <Modal open={openEditModal} onClose={handleCloseEditModal}>
         <Box sx={style} component="form" onSubmit={handleEditSubmit}>
-          <Typography variant="h6" component="h2" gutterBottom>
+          <Typography variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
             Editar Percha
           </Typography>
 
@@ -204,6 +207,7 @@ function PerchasCrud() {
             onChange={handleChange(setEditPercha)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
 
           <TextField
@@ -215,6 +219,7 @@ function PerchasCrud() {
             onChange={handleChange(setEditPercha)}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           >
             {grupos.map((grupo) => (
               <MenuItem key={grupo.id} value={grupo.id}>
@@ -223,7 +228,13 @@ function PerchasCrud() {
             ))}
           </TextField>
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}
+          >
             Guardar Cambios
           </Button>
         </Box>

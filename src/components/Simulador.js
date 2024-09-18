@@ -7,32 +7,55 @@ function Simulador({ venta, onSimulacionTerminada }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const intervalDuration = 15000; // 15 seconds
-    const incrementInterval = intervalDuration / 100; // Progress in percentage steps
+    const intervalDuration = 15000; 
+    const incrementInterval = intervalDuration / 100; 
 
     const interval = setInterval(() => {
       setProgress((prevProgress) => {
         if (prevProgress >= 100) {
           clearInterval(interval);
-          onSimulacionTerminada(galones, total); // Llamada al callback para finalizar simulación
+          onSimulacionTerminada(galones, total);
           return 100;
         }
-        const nuevosGalones = Number(galones) + Math.random() * 2; // Incrementar galones aleatoriamente
-        const nuevoTotal = Number(total) + nuevosGalones * 2.5; // Simular precio
-        setGalones(nuevosGalones.toFixed(2)); // Mantener dos decimales
-        setTotal(nuevoTotal.toFixed(2)); // Mantener dos decimales
-        return prevProgress + 1; // Incrementar progreso
+        const nuevosGalones = Number(galones) + Math.random() * 2;
+        const nuevoTotal = Number(total) + nuevosGalones * 2.5; 
+        setGalones(nuevosGalones.toFixed(2)); 
+        setTotal(nuevoTotal.toFixed(2)); 
+        return prevProgress + 1; 
       });
-    }, incrementInterval); // Actualizar el progreso cada 150ms
+    }, incrementInterval); 
 
-    return () => clearInterval(interval); // Limpiar el intervalo cuando el componente se desmonta
+    return () => clearInterval(interval);
   }, [galones, total, onSimulacionTerminada]);
 
   return (
-    <Box>
-      <Typography variant="body2">Galones: {galones}</Typography>
-      <Typography variant="body2">Total: ${total}</Typography>
-      <LinearProgress variant="determinate" value={progress} />
+    <Box
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        boxShadow: 3,
+        backgroundColor: '#f0f4f4',
+        mb: 2,
+      }}
+    >
+      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#2e7d32', mb: 1 }}>
+        Galones: {galones}
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#2e7d32', mb: 1 }}>
+        Total: ${total}
+      </Typography>
+      <LinearProgress
+        variant="determinate"
+        value={progress}
+        sx={{
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: '#c8e6c9',
+          '& .MuiLinearProgress-bar': {
+            backgroundColor: '#4caf50',
+          },
+        }}
+      />
     </Box>
   );
 }

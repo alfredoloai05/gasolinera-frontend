@@ -6,13 +6,11 @@ import {
   TextField,
   Button,
   Typography,
-  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CrudTable from "../components/CrudTable";
 import axios from "axios";
+import config from '../config'; 
 
 const style = {
   position: "absolute",
@@ -21,16 +19,17 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 400,
   bgcolor: "background.paper",
-  border: "2px solid #000",
   boxShadow: 24,
   p: 4,
+  borderRadius: 2,
+  fontFamily: "Poppins, sans-serif",
 };
 
 function AdministradoresCrud() {
   const [administradores, setAdministradores] = useState([]);
-  const [openAddModal, setOpenAddModal] = useState(false); // Modal para agregar
-  const [openEditModal, setOpenEditModal] = useState(false); // Modal para editar
-  const [openPasswordModal, setOpenPasswordModal] = useState(false); // Modal para cambiar contraseña
+  const [openAddModal, setOpenAddModal] = useState(false);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [openPasswordModal, setOpenPasswordModal] = useState(false);
   const [newAdmin, setNewAdmin] = useState({
     nombre: "",
     apellido: "",
@@ -52,7 +51,7 @@ function AdministradoresCrud() {
 
   const fetchAdministradores = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/administradores", {
+      const response = await axios.get(`${config.apiUrl}/administradores`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setAdministradores(response.data);
@@ -93,7 +92,7 @@ function AdministradoresCrud() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/administrador", newAdmin, {
+      await axios.post(`${config.apiUrl}/administrador`, newAdmin, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchAdministradores();
@@ -114,7 +113,7 @@ function AdministradoresCrud() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/administrador/${editAdmin.id}`, editAdmin, {
+      await axios.put(`${config.apiUrl}/administrador/${editAdmin.id}`, editAdmin, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchAdministradores();
@@ -131,7 +130,7 @@ function AdministradoresCrud() {
       return;
     }
     try {
-      await axios.put(`http://localhost:5000/administrador/${editAdmin.id}`, { clave: newPassword }, {
+      await axios.put(`${config.apiUrl}/administrador/${editAdmin.id}`, { clave: newPassword }, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       handleClosePasswordModal();
@@ -144,7 +143,7 @@ function AdministradoresCrud() {
 
   const handleDelete = async (admin) => {
     try {
-      await axios.delete(`http://localhost:5000/administrador/${admin.id}`, {
+      await axios.delete(`${config.apiUrl}/administrador/${admin.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchAdministradores();
@@ -155,9 +154,20 @@ function AdministradoresCrud() {
 
   return (
     <div>
-      <h2>CRUD de Administradores</h2>
+      <Typography
+        variant="h5"
+        gutterBottom
+        sx={{ fontFamily: "Poppins, sans-serif", color: "#2e7d32" }}
+      >
+        CRUD de Administradores
+      </Typography>
 
-      <Fab color="primary" aria-label="add" onClick={handleOpenAddModal} style={{ marginBottom: "20px" }}>
+      <Fab
+        color="success"
+        aria-label="add"
+        onClick={handleOpenAddModal}
+        sx={{ marginBottom: "20px", backgroundColor: "#72a7fc", color: "white" }}
+      >
         <AddIcon />
       </Fab>
 
@@ -176,18 +186,84 @@ function AdministradoresCrud() {
       {/* Modal para agregar nuevo administrador */}
       <Modal open={openAddModal} onClose={handleCloseAddModal} aria-labelledby="modal-modal-title">
         <Box sx={style} component="form" onSubmit={handleSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+          <Typography
+            id="modal-modal-title"
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{ fontFamily: "Poppins, sans-serif", color: "#388e3c" }}
+          >
             Agregar Nuevo Administrador
           </Typography>
 
-          <TextField label="Nombre" name="nombre" fullWidth value={newAdmin.nombre} onChange={handleChange} margin="normal" required />
-          <TextField label="Apellido" name="apellido" fullWidth value={newAdmin.apellido} onChange={handleChange} margin="normal" required />
-          <TextField label="Cédula" name="cedula" fullWidth value={newAdmin.cedula} onChange={handleChange} margin="normal" required />
-          <TextField label="Usuario" name="usuario" fullWidth value={newAdmin.usuario} onChange={handleChange} margin="normal" required />
-          <TextField label="Correo" name="correo" fullWidth value={newAdmin.correo} onChange={handleChange} margin="normal" required />
-          <TextField label="Clave" name="clave" type="password" fullWidth value={newAdmin.clave} onChange={handleChange} margin="normal" required />
+          <TextField
+            label="Nombre"
+            name="nombre"
+            fullWidth
+            value={newAdmin.nombre}
+            onChange={handleChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Apellido"
+            name="apellido"
+            fullWidth
+            value={newAdmin.apellido}
+            onChange={handleChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Cédula"
+            name="cedula"
+            fullWidth
+            value={newAdmin.cedula}
+            onChange={handleChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Usuario"
+            name="usuario"
+            fullWidth
+            value={newAdmin.usuario}
+            onChange={handleChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Correo"
+            name="correo"
+            fullWidth
+            value={newAdmin.correo}
+            onChange={handleChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Clave"
+            name="clave"
+            type="password"
+            fullWidth
+            value={newAdmin.clave}
+            onChange={handleChange}
+            margin="normal"
+            required
+          />
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              mt: 2,
+              backgroundColor: "#4caf50",
+              color: "white",
+              "&:hover": { backgroundColor: "#388e3c" },
+              fontFamily: "Poppins, sans-serif",
+            }}
+            fullWidth
+          >
             Agregar
           </Button>
         </Box>
@@ -196,22 +272,74 @@ function AdministradoresCrud() {
       {/* Modal para editar administrador */}
       <Modal open={openEditModal} onClose={handleCloseEditModal} aria-labelledby="modal-modal-title">
         <Box sx={style} component="form" onSubmit={handleEditSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+          <Typography
+            id="modal-modal-title"
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{ fontFamily: "Poppins, sans-serif", color: "#388e3c" }}
+          >
             Editar Administrador
           </Typography>
 
-          <TextField label="Nombre" name="nombre" fullWidth value={editAdmin.nombre} onChange={handleEditChange} margin="normal" required />
-          <TextField label="Apellido" name="apellido" fullWidth value={editAdmin.apellido} onChange={handleEditChange} margin="normal" required />
-          <TextField label="Cédula" name="cedula" fullWidth value={editAdmin.cedula} onChange={handleEditChange} margin="normal" required />
-          <TextField label="Usuario" name="usuario" fullWidth value={editAdmin.usuario} onChange={handleEditChange} margin="normal" required />
-          <TextField label="Correo" name="correo" fullWidth value={editAdmin.correo} onChange={handleEditChange} margin="normal" required />
-          
-          <TextField label="Clave" value="*******" margin="normal" fullWidth disabled />
-          <Button onClick={handleOpenPasswordModal} variant="outlined" color="secondary" fullWidth sx={{ mt: 2 }}>
-            Cambiar Clave
-          </Button>
+          <TextField
+            label="Nombre"
+            name="nombre"
+            fullWidth
+            value={editAdmin.nombre}
+            onChange={handleEditChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Apellido"
+            name="apellido"
+            fullWidth
+            value={editAdmin.apellido}
+            onChange={handleEditChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Cédula"
+            name="cedula"
+            fullWidth
+            value={editAdmin.cedula}
+            onChange={handleEditChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Usuario"
+            name="usuario"
+            fullWidth
+            value={editAdmin.usuario}
+            onChange={handleEditChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Correo"
+            name="correo"
+            fullWidth
+            value={editAdmin.correo}
+            onChange={handleEditChange}
+            margin="normal"
+            required
+          />
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              mt: 2,
+              backgroundColor: "#4caf50",
+              color: "white",
+              "&:hover": { backgroundColor: "#388e3c" },
+              fontFamily: "Poppins, sans-serif",
+            }}
+            fullWidth
+          >
             Guardar Cambios
           </Button>
         </Box>
@@ -220,14 +348,49 @@ function AdministradoresCrud() {
       {/* Modal para cambiar la contraseña */}
       <Modal open={openPasswordModal} onClose={handleClosePasswordModal} aria-labelledby="modal-password-title">
         <Box sx={style} component="form" onSubmit={handlePasswordSubmit}>
-          <Typography id="modal-password-title" variant="h6" component="h2" gutterBottom>
+          <Typography
+            id="modal-password-title"
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{ fontFamily: "Poppins, sans-serif", color: "#388e3c" }}
+          >
             Cambiar Contraseña
           </Typography>
 
-          <TextField label="Nueva Contraseña" name="newPassword" type="password" fullWidth value={newPassword} onChange={(e) => setNewPassword(e.target.value)} margin="normal" required />
-          <TextField label="Confirmar Contraseña" name="confirmPassword" type="password" fullWidth value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} margin="normal" required />
+          <TextField
+            label="Nueva Contraseña"
+            name="newPassword"
+            type="password"
+            fullWidth
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Confirmar Contraseña"
+            name="confirmPassword"
+            type="password"
+            fullWidth
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            margin="normal"
+            required
+          />
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              mt: 2,
+              backgroundColor: "#4caf50",
+              color: "white",
+              "&:hover": { backgroundColor: "#388e3c" },
+              fontFamily: "Poppins, sans-serif",
+            }}
+            fullWidth
+          >
             Actualizar Contraseña
           </Button>
         </Box>

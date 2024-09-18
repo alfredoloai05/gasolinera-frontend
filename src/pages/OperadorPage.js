@@ -9,7 +9,7 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText,
+  Tooltip,
   CssBaseline,
   Divider,
   Button,
@@ -18,99 +18,101 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import GroupIcon from "@mui/icons-material/Group";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import MenuIcon from "@mui/icons-material/Menu";
-import BuildIcon from "@mui/icons-material/Build";
-import StorageIcon from "@mui/icons-material/Storage"; // Icono para la nueva pestaña
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import StorageIcon from "@mui/icons-material/Storage";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
 import GrupoOperador from "./GrupoOperador";
 import VentaArticuloOperador from "./VentaArticuloOperador";
 import DespachoOperador from "./DespachoOperador";
-import ClientesCrud from "../components/VentaCliente";//VentaPlaca //StorageViewer; // Importar el nuevo componente
+import ClientesCrud from "./ClientesCrud";
 import Reportes from "./ReportesPage";
+import UltimaVenta from "./UltimasVentas";
 import axios from "axios";
+import config from '../config'; 
 
-const drawerWidth = 240;
+const drawerWidth = 80; 
 
 function OperadorPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState("Grupo");
-  const [selectedGrupos, setSelectedGrupos] = useState([]);
-  const [openConfirmLogout, setOpenConfirmLogout] = useState(false); // Diálogo de confirmación para cerrar sesión
+  const [openConfirmLogout, setOpenConfirmLogout] = useState(false);
+  const [nombreOperador, setNombreOperador] = useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
   const navigate = useNavigate();
 
-  const usuario = localStorage.getItem("usuario");
+  const idOperador = localStorage.getItem("id_operador");
+
+  useEffect(() => {
+    const fetchNombreOperador = async () => {
+      try {
+        const response = await axios.get(`${config.apiUrl}/operador/${idOperador}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        setNombreOperador(response.data.nombre);
+      } catch (error) {
+        console.error("Error al obtener el nombre del operador:", error);
+      }
+    };
+
+    if (idOperador) {
+      fetchNombreOperador();
+    }
+  }, [idOperador]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
-  // Obtener los grupos asignados
-  const fetchGruposAsignados = async () => {
-    try {
-      const response = await axios.get("http://localhost:5000/grupos", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      const gruposAsignados = response.data.filter((grupo) => grupo.id_operador === usuario);
-      setSelectedGrupos(gruposAsignados);
-    } catch (error) {
-      console.error("Error al cargar los grupos asignados", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchGruposAsignados();
-  }, []);
 
   const liberarGrupos = async () => {
     try {
       const gruposAsignados = JSON.parse(localStorage.getItem("gruposAsignados")) || [];
 
       for (const grupoId of gruposAsignados) {
-        console.log(`Liberando grupo ${grupoId}`);
         await axios.put(
-          `http://localhost:5000/grupo/${grupoId}/liberar`,
+          `${config.apiUrl}/grupo/${grupoId}/liberar`,
           {},
           {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }
         );
-        console.log(`Grupo ${grupoId} liberado`);
       }
 
-      console.log("Todos los grupos han sido liberados");
-      localStorage.removeItem("gruposAsignados"); // Limpiar los IDs de los grupos asignados
+      localStorage.removeItem("gruposAsignados");
     } catch (error) {
       console.error("Error al liberar los grupos", error);
     }
   };
 
   const handleLogout = async () => {
-    const confirmLogout = window.confirm("¿Estás seguro de que deseas cerrar sesión?");
-    if (confirmLogout) {
-      await liberarGrupos(); // Liberar los grupos antes de cerrar sesión
-      alert("Grupos liberados exitosamente. Cerrando sesión...");
+    await liberarGrupos();
 
-      // Limpiar datos y redirigir al login
-      localStorage.removeItem("token");
-      localStorage.removeItem("role");
-      localStorage.removeItem("usuario");
-      navigate("/login");
-    }
+    setSnackbarMessage("Grupos liberados exitosamente. Cerrando sesión...");
+    setSnackbarOpen(true);
+
+    localStorage.clear();
+    navigate("/login");
   };
 
-  // Función para abrir el diálogo de confirmación
   const handleConfirmLogout = () => {
     setOpenConfirmLogout(true);
   };
 
-  // Función para cancelar el cierre de sesión
   const handleCancelLogout = () => {
     setOpenConfirmLogout(false);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
   };
 
   const drawer = (
@@ -118,54 +120,35 @@ function OperadorPage() {
       <Toolbar />
       <Divider />
       <List>
-        {/* Opción Grupos */}
-        <ListItem button onClick={() => setSelectedPage("Grupo")}>
-          <ListItemIcon>
-            <GroupIcon />
-          </ListItemIcon>
-          <ListItemText primary="Grupos" />
-        </ListItem>
-
-        {/* Opción Despacho */}
-        <ListItem button onClick={() => setSelectedPage("DespachoOperador")}>
-          <ListItemIcon>
-            <LocalGasStationIcon />
-          </ListItemIcon>
-          <ListItemText primary="Despacho" />
-        </ListItem>
-
-        {/* Opción Ventas */}
-        <ListItem button onClick={() => setSelectedPage("VentaArticuloOperador")}>
-          <ListItemIcon>
-            <ShoppingCartIcon />
-          </ListItemIcon>
-          <ListItemText primary="Ventas" />
-        </ListItem>
-
-        {/* Opción Storage */}
-        <ListItem button onClick={() => setSelectedPage("Clientes")}>
-          <ListItemIcon>
-            <StorageIcon />
-          </ListItemIcon>
-          <ListItemText primary="Clientes" />
-        </ListItem>
-
-        {/* Opción Storage */}
-        <ListItem button onClick={() => setSelectedPage("Reportes")}>
-          <ListItemIcon>
-            <BuildIcon />
-          </ListItemIcon>
-          <ListItemText primary="Reportes" />
-        </ListItem>
-
-
-        {/* Opción Cerrar Sesión */}
-        <ListItem button onClick={handleConfirmLogout}>
-          <ListItemIcon>
-            <ExitToAppIcon />
-          </ListItemIcon>
-          <ListItemText primary="Cerrar Sesión" />
-        </ListItem>
+        {[
+          { text: "Grupos", icon: <GroupIcon />, page: "Grupo" },
+          { text: "Despacho", icon: <LocalGasStationIcon />, page: "DespachoOperador" },
+          { text: "Ventas", icon: <ShoppingCartIcon />, page: "VentaArticuloOperador" },
+          { text: "Clientes", icon: <StorageIcon />, page: "Clientes" },
+          { text: "Reportes", icon: <AssessmentIcon />, page: "Reportes" },
+          { text: "Últimas Ventas", icon: <ReceiptIcon />, page: "UltimaVenta" }, // Icono actualizado para "Últimas Ventas"
+        ].map((item) => (
+          <Tooltip title={item.text} placement="right" key={item.text}>
+            <ListItem
+              button
+              onClick={() => {
+                setSelectedPage(item.page);
+                if (mobileOpen) setMobileOpen(false);
+              }}
+              sx={{
+                backgroundColor: selectedPage === item.page ? "#A5D6A7" : "transparent",
+                borderLeft: selectedPage === item.page ? "4px solid #4CAF50" : "none",
+                "&:hover": {
+                  backgroundColor: "#C8E6C9",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: selectedPage === item.page ? "#4CAF50" : "inherit", fontSize: "2rem" }}>
+                {item.icon}
+              </ListItemIcon>
+            </ListItem>
+          </Tooltip>
+        ))}
       </List>
     </div>
   );
@@ -181,7 +164,9 @@ function OperadorPage() {
       case "Clientes":
         return <ClientesCrud />;
       case "Reportes":
-        return <Reportes />; 
+        return <Reportes />;
+      case "UltimaVenta":
+        return <UltimaVenta />;
       default:
         return <GrupoOperador />;
     }
@@ -195,7 +180,9 @@ function OperadorPage() {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          backgroundColor: "#1976d2",
+          background: 'linear-gradient(-45deg, #e1eec3, #f05053, #41a7a8, #f7b42c)',
+          backgroundSize: '400% 400%',
+          animation: 'gradientAnimation 15s ease infinite',
         }}
       >
         <Toolbar>
@@ -209,8 +196,11 @@ function OperadorPage() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Bienvenido, {usuario}
+            Bienvenido, {nombreOperador}
           </Typography>
+          <IconButton color="inherit" onClick={handleConfirmLogout} sx={{ color: "red" }}>
+            <LogoutIcon fontSize="medium" />
+          </IconButton>
         </Toolbar>
       </AppBar>
 
@@ -222,7 +212,6 @@ function OperadorPage() {
         }}
         aria-label="mailbox folders"
       >
-        {/* Drawer para pantallas móviles */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -230,18 +219,25 @@ function OperadorPage() {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: "block", sm: "none" },
-            "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+              backgroundColor: "#A5D6A7",
+            },
           }}
         >
           {drawer}
         </Drawer>
 
-        {/* Drawer para pantallas grandes */}
         <Drawer
           variant="permanent"
           sx={{
             display: { xs: "none", sm: "block" },
-            "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+              backgroundColor: "#A5D6A7",
+            },
           }}
           open
         >
@@ -255,40 +251,67 @@ function OperadorPage() {
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          backgroundColor: "#FFFFFF",
         }}
       >
-        <Toolbar /> {/* Este espacio es para el header */}
-        {renderPage()} {/* Contenido de la página */}
+        <Toolbar />
+        {renderPage()}
 
-        {/* Diálogo de Confirmación para cerrar sesión */}
         <Dialog
           open={openConfirmLogout}
           onClose={handleCancelLogout}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
+          sx={{
+            '& .MuiPaper-root': {
+              backgroundColor: '#f0f4f4',
+              color: '#2e7d32',
+              borderRadius: 2,
+              boxShadow: 5,
+            },
+          }}
         >
-          <DialogTitle id="alert-dialog-title">{"¿Seguro que quieres cerrar sesión?"}</DialogTitle>
+          <DialogTitle id="alert-dialog-title" sx={{ fontWeight: 700 }}>
+            ¿Seguro que quieres cerrar sesión?
+          </DialogTitle>
           <DialogContent>
-            <DialogContentText id="alert-dialog-description">
+            <DialogContentText id="alert-dialog-description" sx={{ color: '#388e3c' }}>
               Al cerrar sesión, se liberarán todos los grupos asignados.
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCancelLogout} color="primary">
+            <Button onClick={handleCancelLogout} sx={{ color: '#388e3c' }}>
               Cancelar
             </Button>
             <Button
               onClick={() => {
-                setOpenConfirmLogout(false); // Cerrar el diálogo
-                handleLogout(); // Proceder con el cierre de sesión y liberación de grupos
+                setOpenConfirmLogout(false);
+                handleLogout();
               }}
-              color="primary"
+              sx={{
+                backgroundColor: '#4caf50',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: '#388e3c',
+                },
+              }}
               autoFocus
             >
               Confirmar
             </Button>
           </DialogActions>
         </Dialog>
+
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={3000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert onClose={handleSnackbarClose} severity="success" sx={{ width: '100%' }}>
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
       </Box>
     </Box>
   );

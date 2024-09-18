@@ -7,10 +7,12 @@ import {
   Typography,
   IconButton,
   Tooltip,
+  MenuItem,
 } from "@mui/material";
 import LocalParkingIcon from "@mui/icons-material/LocalParking";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
+import config from '../config'; 
 
 const style = {
   position: "absolute",
@@ -19,7 +21,7 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 400,
   bgcolor: "background.paper",
-  border: "2px solid #000",
+  borderRadius: 2,
   boxShadow: 24,
   p: 4,
 };
@@ -27,14 +29,16 @@ const style = {
 function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
   const [cliente, setCliente] = useState(null);
   const [placas, setPlacas] = useState([]);
-  const [cedulaBuscar, setCedulaBuscar] = useState(cedulaInicial || ""); 
-  const [openAddModal, setOpenAddModal] = useState(false); 
-  const [openPlacasModal, setOpenPlacasModal] = useState(false); 
+  const [cedulaBuscar, setCedulaBuscar] = useState(cedulaInicial || "");
+  const [openAddModal, setOpenAddModal] = useState(false);
+  const [openPlacasModal, setOpenPlacasModal] = useState(false);
   const [newCliente, setNewCliente] = useState({
     nombre: "",
     apellido: "",
     correo: "",
     direccion: "",
+    telefono: "",
+    tipo_identificacion: "C",
     cedula: cedulaBuscar,
   });
   const [newPlaca, setNewPlaca] = useState({
@@ -48,7 +52,6 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
     }
   }, [cedulaInicial]);
 
-  // Función para limpiar los campos
   const limpiarCampos = () => {
     setCedulaBuscar("");
     setCliente(null);
@@ -58,6 +61,8 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
       apellido: "",
       correo: "",
       direccion: "",
+      telefono: "",
+      tipo_identificacion: "C",
       cedula: "",
     });
     setNewPlaca({
@@ -66,23 +71,32 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
     });
   };
 
-  // Llamar a onLimpiar cuando se necesite limpiar el componente desde fuera
   useEffect(() => {
     if (onLimpiar) {
       onLimpiar(limpiarCampos);
     }
   }, [onLimpiar]);
 
-  // Buscar cliente por cédula
+  useEffect(() => {
+    const { cedula } = newCliente;
+
+    if (cedula.length === 10) {
+      setNewCliente((prev) => ({ ...prev, tipo_identificacion: "C" }));
+    } else if (cedula.length === 13) {
+      setNewCliente((prev) => ({ ...prev, tipo_identificacion: "R" }));
+    } else {
+      setNewCliente((prev) => ({ ...prev, tipo_identificacion: "P" }));
+    }
+  }, [newCliente.cedula]);
+
   const buscarClientePorCedula = async (cedula) => {
     try {
-      const response = await axios.get(`http://localhost:5000/cliente/cedula/${cedula}`, {
+      const response = await axios.get(`${config.apiUrl}/cliente/cedula/${cedula}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setCliente(response.data);
       const placasCliente = await fetchPlacasByCliente(response.data.cedula);
 
-      // Devolver los datos del cliente y las placas al componente padre
       onClienteEncontrado({ ...response.data, placas: placasCliente });
       
       if (placasCliente.length === 0) {
@@ -92,17 +106,16 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
     } catch (error) {
       if (error.response && error.response.status === 404) {
         setCliente(null);
-        handleOpenAddModal(); // Abrir modal para agregar nuevo cliente
+        handleOpenAddModal();
       } else {
         console.error("Error al buscar cliente", error);
       }
     }
   };
 
-  // Obtener las placas del cliente
   const fetchPlacasByCliente = async (cedula) => {
     try {
-      const response = await axios.get(`http://localhost:5000/cliente/${cedula}/placas`, {
+      const response = await axios.get(`${config.apiUrl}/cliente/${cedula}/placas`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setPlacas(response.data);
@@ -114,7 +127,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
   };
 
   const handleOpenAddModal = () => {
-    setNewCliente({ ...newCliente, cedula: cedulaBuscar }); 
+    setNewCliente({ ...newCliente, cedula: cedulaBuscar });
     setOpenAddModal(true);
   };
   const handleCloseAddModal = () => setOpenAddModal(false);
@@ -130,16 +143,15 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
     setNewCliente({ ...newCliente, [e.target.name]: e.target.value });
   };
 
-  // Crear un nuevo cliente y luego abrir el modal de placas si no tiene
   const handleAddClienteSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:5000/cliente", newCliente, {
+      const response = await axios.post(`${config.apiUrl}/cliente`, newCliente, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setCliente(response.data);
       handleCloseAddModal();
-      handleOpenPlacasModal(response.data); // Abrir el modal de placas tras crear cliente
+      handleOpenPlacasModal(response.data);
     } catch (error) {
       console.error("Error al crear cliente", error);
     }
@@ -148,11 +160,11 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
   const handlePlacaSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/placa", newPlaca, {
+      await axios.post(`${config.apiUrl}/placa`, newPlaca, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       await fetchPlacasByCliente(newPlaca.cedula_cliente);
-      handleClosePlacasModal(); // Cerrar modal tras añadir la placa
+      handleClosePlacasModal();
     } catch (error) {
       console.error("Error al crear placa", error);
     }
@@ -160,43 +172,47 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
 
   return (
     <div>
-      <h2>Buscar Cliente por Cédula</h2>
-      <Box sx={{ display: "flex", mb: 2 }}>
+      <Typography variant="h5" sx={{ fontFamily: "Poppins, sans-serif", fontWeight: 'bold', color: '#2e7d32' }}>
+        Buscar Cliente por Cédula
+      </Typography>
+      <Box sx={{ display: "flex", mb: 2, gap: 2 }}>
         <TextField
           label="Cédula"
           value={cedulaBuscar}
           onChange={(e) => setCedulaBuscar(e.target.value)}
           fullWidth
           margin="normal"
+          sx={{ backgroundColor: 'white', borderRadius: 1 }}
         />
         <Tooltip title="Buscar Cliente">
           <IconButton onClick={() => buscarClientePorCedula(cedulaBuscar)}>
-            <SearchIcon />
+            <SearchIcon sx={{ color: '#4caf50' }} />
           </IconButton>
         </Tooltip>
       </Box>
 
-      {/* Mostrar cliente encontrado o mensaje */}
       {cliente ? (
         <div>
-          <Typography variant="h6">
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#388e3c' }}>
             {cliente.nombre} {cliente.apellido}
           </Typography>
           <Typography variant="body1">Cédula: {cliente.cedula}</Typography>
           <Typography variant="body1">Correo: {cliente.correo}</Typography>
           <Typography variant="body1">Dirección: {cliente.direccion}</Typography>
+          <Typography variant="body1">Teléfono: {cliente.telefono}</Typography>
+          <Typography variant="body1">Tipo de Identificación: {cliente.tipo_identificacion}</Typography>
           <IconButton onClick={() => handleOpenPlacasModal(cliente)}>
-            <LocalParkingIcon />
+            <LocalParkingIcon sx={{ color: '#388e3c' }} />
           </IconButton>
         </div>
       ) : (
-        <Typography variant="body1">No se encontró cliente.</Typography>
+        <Typography variant="body1" sx={{ color: '#9e9e9e' }}>No se encontró cliente.</Typography>
       )}
 
       {/* Modal para agregar nuevo cliente */}
       <Modal open={openAddModal} onClose={handleCloseAddModal}>
         <Box sx={style} component="form" onSubmit={handleAddClienteSubmit}>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32' }}>
             Agregar Nuevo Cliente
           </Typography>
           <TextField
@@ -207,6 +223,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
             onChange={handleAddClienteChange}
             margin="normal"
             required
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
           <TextField
             label="Apellido"
@@ -216,6 +233,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
             onChange={handleAddClienteChange}
             margin="normal"
             required
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
           <TextField
             label="Cédula"
@@ -225,6 +243,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
             onChange={handleAddClienteChange}
             margin="normal"
             required
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
           <TextField
             label="Correo"
@@ -234,6 +253,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
             onChange={handleAddClienteChange}
             margin="normal"
             required
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
           <TextField
             label="Dirección"
@@ -243,8 +263,34 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
             onChange={handleAddClienteChange}
             margin="normal"
             required
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <TextField
+            label="Teléfono"
+            name="telefono"
+            fullWidth
+            value={newCliente.telefono}
+            onChange={handleAddClienteChange}
+            margin="normal"
+            required
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
+          />
+          <TextField
+            select
+            label="Tipo de Identificación"
+            name="tipo_identificacion"
+            fullWidth
+            value={newCliente.tipo_identificacion}
+            onChange={handleAddClienteChange}
+            margin="normal"
+            required
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
+          >
+            <MenuItem value="C">Cédula</MenuItem>
+            <MenuItem value="P">Pasaporte</MenuItem>
+            <MenuItem value="R">RUC</MenuItem>
+          </TextField>
+          <Button type="submit" variant="contained" sx={{ mt: 2, backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}>
             Agregar
           </Button>
         </Box>
@@ -253,7 +299,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
       {/* Modal para gestionar placas */}
       <Modal open={openPlacasModal} onClose={handleClosePlacasModal}>
         <Box sx={style} component="form" onSubmit={handlePlacaSubmit}>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32' }}>
             Gestionar Placas del Cliente
           </Typography>
           {placas.length > 0 ? (
@@ -263,7 +309,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
               </Box>
             ))
           ) : (
-            <Typography variant="body2">No hay placas asociadas.</Typography>
+            <Typography variant="body2" sx={{ color: '#9e9e9e' }}>No hay placas asociadas.</Typography>
           )}
           <TextField
             label="Nueva Placa"
@@ -273,8 +319,9 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
             onChange={(e) => setNewPlaca({ ...newPlaca, numero: e.target.value })}
             margin="normal"
             required
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          <Button type="submit" variant="contained" sx={{ mt: 2, backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}>
             Agregar Placa
           </Button>
         </Box>

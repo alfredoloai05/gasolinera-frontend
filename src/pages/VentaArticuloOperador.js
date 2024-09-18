@@ -20,7 +20,8 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
-import VentaCliente from "../components/VentaCliente"; // Componente para seleccionar cliente
+import VentaCliente from "../components/VentaCliente";
+import config from '../config'; 
 
 function VentaArticuloOperador() {
   const [perchas, setPerchas] = useState([]);
@@ -28,18 +29,18 @@ function VentaArticuloOperador() {
   const [selectedPercha, setSelectedPercha] = useState(null);
   const [selectedProducto, setSelectedProducto] = useState(null);
   const [selectedCantidad, setSelectedCantidad] = useState(0);
-  const [carrito, setCarrito] = useState([]); // Productos seleccionados
+  const [carrito, setCarrito] = useState([]);
   const [isProductModalOpen, setProductModalOpen] = useState(false);
   const [isQuantityModalOpen, setQuantityModalOpen] = useState(false);
-  const [editIndex, setEditIndex] = useState(null); // Para editar la cantidad de un producto
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null); // Cliente seleccionado
+  const [editIndex, setEditIndex] = useState(null);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [limpiarCliente, setLimpiarCliente] = useState(null);
 
-  // Obtener perchas asignadas
   const fetchPerchasAsignadas = async () => {
     const gruposAsignados = JSON.parse(localStorage.getItem("gruposAsignados")) || [];
     const perchasAsignadas = [];
     for (const grupoId of gruposAsignados) {
-      const response = await axios.get(`http://localhost:5000/perchas/grupo/${grupoId}`, {
+      const response = await axios.get(`${config.apiUrl}/perchas/grupo/${grupoId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       perchasAsignadas.push(...response.data);
@@ -51,9 +52,8 @@ function VentaArticuloOperador() {
     fetchPerchasAsignadas();
   }, []);
 
-  // Abrir modal con productos de la percha seleccionada y bloquear las otras
   const handleOpenProductosModal = async (perchaId) => {
-    const response = await axios.get(`http://localhost:5000/productos/percha/${perchaId}`, {
+    const response = await axios.get(`${config.apiUrl}/productos/percha/${perchaId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
     setProductos(response.data);
@@ -61,19 +61,17 @@ function VentaArticuloOperador() {
     setProductModalOpen(true);
   };
 
-  // Seleccionar un producto para añadir al carrito
   const handleSelectProducto = (producto) => {
     setSelectedProducto(producto);
     setProductModalOpen(false);
     setQuantityModalOpen(true);
   };
 
-  // Añadir o actualizar el producto en el carrito
   const handleAddToCarrito = () => {
     const nuevoProducto = {
       ...selectedProducto,
       cantidadSeleccionada: selectedCantidad,
-      precioTotal: selectedProducto.precio * selectedCantidad,
+      precioTotal: selectedProducto.PrecioVentaPublico * selectedCantidad,
     };
 
     if (editIndex !== null) {
@@ -89,13 +87,11 @@ function VentaArticuloOperador() {
     setSelectedCantidad(0);
   };
 
-  // Eliminar producto del carrito
   const handleEliminarProducto = (index) => {
     const nuevoCarrito = carrito.filter((_, i) => i !== index);
     setCarrito(nuevoCarrito);
   };
 
-  // Editar producto en el carrito
   const handleEditarProducto = (index) => {
     const producto = carrito[index];
     setSelectedProducto(producto);
@@ -104,19 +100,17 @@ function VentaArticuloOperador() {
     setQuantityModalOpen(true);
   };
 
-  // Manejar la cancelación de la venta
   const handleCancelarVenta = () => {
     setCarrito([]);
-    setSelectedPercha(null); // Desbloquear las perchas
+    setSelectedPercha(null);
   };
 
-  // Calcular total de la venta
   const calcularTotalVenta = () => {
     return carrito.reduce((total, producto) => total + producto.precioTotal, 0);
   };
 
   const handleVender = async () => {
-    const totalVenta = calcularTotalVenta(); 
+    const totalVenta = calcularTotalVenta();
     const idOperador = localStorage.getItem("id_operador");
 
     const venta = {
@@ -124,7 +118,7 @@ function VentaArticuloOperador() {
       totalVenta: totalVenta,
       id_estante: selectedPercha,
       cedula_cliente: clienteSeleccionado?.cedula,
-      fecha: new Date().toISOString(), // Fecha y hora actual en formato ISO 8601
+      fecha: new Date().toISOString(),
       productos: carrito.map(({ id, cantidadSeleccionada, precioTotal }) => ({
         id_producto: id,
         cantidad: cantidadSeleccionada,
@@ -133,21 +127,19 @@ function VentaArticuloOperador() {
     };
 
     try {
-      const response = await axios.post("http://localhost:5000/venta_articulo", venta, {
+      const response = await axios.post(`${config.apiUrl}/venta_articulo`, venta, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
       alert("Venta realizada con éxito");
-      
-      // Limpiar todos los campos
+
       setCarrito([]);
       setSelectedPercha(null);
       setClienteSeleccionado(null);
       setProductos([]);
       setSelectedProducto(null);
       setSelectedCantidad(0);
-      
-      // Llamar a la función de limpieza en el componente VentaCliente
+
       if (limpiarCliente) {
         limpiarCliente();
       }
@@ -156,9 +148,6 @@ function VentaArticuloOperador() {
     }
   };
 
-  // Función para recibir la función de limpieza desde VentaCliente
-  const [limpiarCliente, setLimpiarCliente] = useState(null);
-
   return (
     <Box>
       <VentaCliente
@@ -166,7 +155,7 @@ function VentaArticuloOperador() {
         onLimpiar={(limpiarFn) => setLimpiarCliente(() => limpiarFn)}
       />
 
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="h5" gutterBottom sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
         Perchas Asignadas
       </Typography>
 
@@ -177,6 +166,7 @@ function VentaArticuloOperador() {
             variant="outlined"
             onClick={() => handleOpenProductosModal(percha.id)}
             disabled={!!selectedPercha && selectedPercha !== percha.id}
+            sx={{ borderColor: '#4caf50', color: '#4caf50', '&:hover': { borderColor: '#388e3c', color: '#388e3c' } }}
           >
             {percha.nombre}
           </Button>
@@ -185,8 +175,8 @@ function VentaArticuloOperador() {
 
       {carrito.length > 0 && (
         <Box sx={{ mt: 2 }}>
-          <Typography variant="h6">Carrito</Typography>
-          <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ color: '#388e3c', fontWeight: 'bold' }}>Carrito</Typography>
+          <TableContainer component={Paper} sx={{ mt: 2, borderRadius: 2, boxShadow: 3 }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -201,17 +191,17 @@ function VentaArticuloOperador() {
                 {carrito.map((producto, idx) => (
                   <TableRow key={idx}>
                     <TableCell component="th" scope="row">
-                      {producto.nombre}
+                      {producto.ConceptoProducto}
                     </TableCell>
                     <TableCell align="right">{producto.cantidadSeleccionada}</TableCell>
-                    <TableCell align="right">{producto.precio.toFixed(2)}</TableCell>
+                    <TableCell align="right">{producto.PrecioVentaPublico.toFixed(2)}</TableCell>
                     <TableCell align="right">{producto.precioTotal.toFixed(2)}</TableCell>
                     <TableCell align="center">
                       <IconButton onClick={() => handleEditarProducto(idx)}>
-                        <EditIcon />
+                        <EditIcon sx={{ color: '#4caf50' }} />
                       </IconButton>
                       <IconButton onClick={() => handleEliminarProducto(idx)}>
-                        <DeleteIcon />
+                        <DeleteIcon sx={{ color: '#e53935' }} />
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -229,26 +219,25 @@ function VentaArticuloOperador() {
             </Table>
           </TableContainer>
           <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-            <Button variant="contained" color="primary" onClick={handleVender}>
+            <Button variant="contained" onClick={handleVender} sx={{ backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}>
               Vender
             </Button>
-            <Button variant="outlined" color="secondary" onClick={handleCancelarVenta}>
+            <Button variant="outlined" onClick={handleCancelarVenta} sx={{ borderColor: '#e53935', color: '#e53935', '&:hover': { borderColor: '#d32f2f', color: '#d32f2f' } }}>
               Cancelar Venta
             </Button>
           </Box>
         </Box>
       )}
 
-      {/* Modal de productos */}
       <Modal open={isProductModalOpen} onClose={() => setProductModalOpen(false)}>
         <Box sx={{ ...modalStyle }}>
-          <Typography variant="h6">Productos en la Percha</Typography>
+          <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32' }}>Productos en la Percha</Typography>
           <List>
             {productos.map((producto) => (
               <ListItem key={producto.id} button onClick={() => handleSelectProducto(producto)}>
                 <ListItemText
-                  primary={producto.nombre}
-                  secondary={`Cantidad: ${producto.cantidad} | Precio: $${producto.precio}`}
+                  primary={producto.ConceptoProducto}
+                  secondary={`Stock: ${producto.StockActual} | Precio: $${producto.PrecioVentaPublico}`}
                 />
               </ListItem>
             ))}
@@ -256,18 +245,18 @@ function VentaArticuloOperador() {
         </Box>
       </Modal>
 
-      {/* Modal para seleccionar cantidad */}
       <Modal open={isQuantityModalOpen} onClose={() => setQuantityModalOpen(false)}>
         <Box sx={{ ...modalStyle }}>
-          <Typography variant="h6">Selecciona la Cantidad</Typography>
+          <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32' }}>Selecciona la Cantidad</Typography>
           <TextField
             type="number"
             label="Cantidad"
             value={selectedCantidad}
             onChange={(e) => setSelectedCantidad(Number(e.target.value))}
             fullWidth
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
           />
-          <Button variant="contained" color="primary" onClick={handleAddToCarrito} sx={{ mt: 2 }}>
+          <Button variant="contained" onClick={handleAddToCarrito} sx={{ mt: 2, backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}>
             Añadir al Carrito
           </Button>
         </Box>
@@ -286,6 +275,7 @@ const modalStyle = {
   maxWidth: "90vw",
   bgcolor: "background.paper",
   boxShadow: 24,
+  borderRadius: 2,
   p: 4,
   overflowY: 'auto',
 };

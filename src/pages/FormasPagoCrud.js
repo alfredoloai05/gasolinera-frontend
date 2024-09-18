@@ -6,13 +6,11 @@ import {
   TextField,
   Button,
   Typography,
-  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CrudTable from "../components/CrudTable";
 import axios from "axios";
+import config from '../config'; 
 
 const style = {
   position: "absolute",
@@ -21,15 +19,16 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 400,
   bgcolor: "background.paper",
-  border: "2px solid #000",
+  border: "2px solid #4caf50", 
   boxShadow: 24,
   p: 4,
+  fontFamily: "Poppins, sans-serif", 
 };
 
 function FormasPagoCrud() {
   const [formasPago, setFormasPago] = useState([]);
-  const [openAddModal, setOpenAddModal] = useState(false); // Modal para agregar
-  const [openEditModal, setOpenEditModal] = useState(false); // Modal para editar
+  const [openAddModal, setOpenAddModal] = useState(false); 
+  const [openEditModal, setOpenEditModal] = useState(false);
   const [newFormaPago, setNewFormaPago] = useState({
     tipo: "",
   });
@@ -41,7 +40,7 @@ function FormasPagoCrud() {
   // Obtener la lista de formas de pago
   const fetchFormasPago = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/formapagos", {
+      const response = await axios.get(`${config.apiUrl}/formapagos`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setFormasPago(response.data);
@@ -76,7 +75,7 @@ function FormasPagoCrud() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/formapago", newFormaPago, {
+      await axios.post(`${config.apiUrl}/formapago`, newFormaPago, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchFormasPago();
@@ -90,7 +89,7 @@ function FormasPagoCrud() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/formapago/${editFormaPago.id}`, editFormaPago, {
+      await axios.put(`${config.apiUrl}/formapago/${editFormaPago.id}`, editFormaPago, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchFormasPago();
@@ -102,7 +101,7 @@ function FormasPagoCrud() {
 
   const handleDelete = async (formapago) => {
     try {
-      await axios.delete(`http://localhost:5000/formapago/${formapago.id}`, {
+      await axios.delete(`${config.apiUrl}/formapago/${formapago.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchFormasPago();
@@ -113,13 +112,13 @@ function FormasPagoCrud() {
 
   return (
     <div>
-      <h2>CRUD de Formas de Pago</h2>
+      <h2 style={{ fontFamily: "Poppins, sans-serif", color: "#4caf50" }}>CRUD de Formas de Pago</h2>
 
       <Fab
         color="primary"
         aria-label="add"
         onClick={handleOpenAddModal}
-        style={{ marginBottom: "20px" }}
+        style={{ marginBottom: "20px", backgroundColor: "#72a7fc" }}
       >
         <AddIcon />
       </Fab>
@@ -134,7 +133,7 @@ function FormasPagoCrud() {
       {/* Modal para agregar nueva forma de pago */}
       <Modal open={openAddModal} onClose={handleCloseAddModal} aria-labelledby="modal-modal-title">
         <Box sx={style} component="form" onSubmit={handleSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
             Agregar Nueva Forma de Pago
           </Typography>
 
@@ -146,6 +145,7 @@ function FormasPagoCrud() {
             onChange={handleChange}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
 
           <Button
@@ -153,7 +153,7 @@ function FormasPagoCrud() {
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 2 }}
+            sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}
           >
             Agregar
           </Button>
@@ -163,7 +163,7 @@ function FormasPagoCrud() {
       {/* Modal para editar forma de pago */}
       <Modal open={openEditModal} onClose={handleCloseEditModal} aria-labelledby="modal-modal-title">
         <Box sx={style} component="form" onSubmit={handleEditSubmit}>
-          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom>
+          <Typography id="modal-modal-title" variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
             Editar Forma de Pago
           </Typography>
 
@@ -175,6 +175,7 @@ function FormasPagoCrud() {
             onChange={handleEditChange}
             margin="normal"
             required
+            InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
           />
 
           <Button
@@ -182,7 +183,7 @@ function FormasPagoCrud() {
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 2 }}
+            sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}
           >
             Guardar Cambios
           </Button>

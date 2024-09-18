@@ -11,6 +11,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import CrudTable from "../components/CrudTable";
 import axios from "axios";
+import config from '../config'; 
 
 const style = {
   position: "absolute",
@@ -19,9 +20,10 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 400,
   bgcolor: "background.paper",
-  border: "2px solid #000",
+  border: "2px solid #4caf50",
   boxShadow: 24,
   p: 4,
+  fontFamily: "Poppins, sans-serif",
 };
 
 function DispensadorCrud() {
@@ -50,10 +52,10 @@ function DispensadorCrud() {
   const fetchData = async () => {
     try {
       const [gruposRes, dispensadoresRes, ladosRes, manguerasRes] = await Promise.all([
-        axios.get("http://localhost:5000/grupos", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
-        axios.get("http://localhost:5000/dispensadores", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
-        axios.get("http://localhost:5000/lados", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
-        axios.get("http://localhost:5000/mangueras", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
+        axios.get(`${config.apiUrl}/grupos`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
+        axios.get(`${config.apiUrl}/dispensadores`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
+        axios.get(`${config.apiUrl}/lados`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
+        axios.get(`${config.apiUrl}/mangueras`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
       ]);
       setGrupos(gruposRes.data);
       setDispensadores(dispensadoresRes.data);
@@ -108,19 +110,19 @@ function DispensadorCrud() {
     let url, data;
     switch (type) {
       case "grupo":
-        url = "http://localhost:5000/grupo";
+        url = `${config.apiUrl}/grupo`;
         data = newGrupo;
         break;
       case "dispensador":
-        url = "http://localhost:5000/dispensador";
+        url = `${config.apiUrl}/dispensador`;
         data = newDispensador;
         break;
       case "lado":
-        url = "http://localhost:5000/lado";
+        url = `${config.apiUrl}/lado`;
         data = newLado;
         break;
       case "manguera":
-        url = "http://localhost:5000/manguera";
+        url = `${config.apiUrl}/manguera`;
         data = newManguera;
         break;
       default:
@@ -141,22 +143,22 @@ function DispensadorCrud() {
     switch (type) {
       case "grupo":
         id = editGrupo.id;
-        url = `http://localhost:5000/grupo/${id}`;
+        url = `${config.apiUrl}/grupo/${id}`;
         data = editGrupo;
         break;
       case "dispensador":
         id = editDispensador.id;
-        url = `http://localhost:5000/dispensador/${id}`;
+        url = `${config.apiUrl}/dispensador/${id}`;
         data = editDispensador;
         break;
       case "lado":
         id = editLado.id;
-        url = `http://localhost:5000/lado/${id}`;
+        url = `${config.apiUrl}/lado/${id}`;
         data = editLado;
         break;
       case "manguera":
         id = editManguera.id;
-        url = `http://localhost:5000/manguera/${id}`;
+        url = `${config.apiUrl}/manguera/${id}`;
         data = editManguera;
         break;
       default:
@@ -173,7 +175,7 @@ function DispensadorCrud() {
 
   const renderForm = (type, data, handleSubmit, handleChange) => (
     <Box sx={style} component="form" onSubmit={(e) => handleSubmit(e, type)}>
-      <Typography variant="h6" component="h2" gutterBottom>
+      <Typography variant="h6" component="h2" gutterBottom sx={{ fontFamily: "Poppins, sans-serif" }}>
         {type === "grupo" ? "Grupo" : type === "dispensador" ? "Dispensador" : type === "lado" ? "Lado" : "Manguera"}
       </Typography>
       <TextField
@@ -184,6 +186,7 @@ function DispensadorCrud() {
         onChange={handleChange}
         margin="normal"
         required
+        InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
       />
       {type === "grupo" && (
         <TextField
@@ -195,6 +198,7 @@ function DispensadorCrud() {
           onChange={handleChange}
           margin="normal"
           required
+          InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
         >
           <MenuItem value={true}>Disponible</MenuItem>
           <MenuItem value={false}>Ocupado</MenuItem>
@@ -210,6 +214,7 @@ function DispensadorCrud() {
           onChange={handleChange}
           margin="normal"
           required
+          InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
         >
           {(type === "dispensador" ? availableGrupos : type === "lado" ? availableDispensadores : availableLados).map((item) => (
             <MenuItem key={item.id} value={item.id}>
@@ -227,9 +232,10 @@ function DispensadorCrud() {
           onChange={handleChange}
           margin="normal"
           required
+          InputProps={{ sx: { fontFamily: "Poppins, sans-serif" } }}
         />
       )}
-      <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+      <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2, fontFamily: "Poppins, sans-serif", backgroundColor: "#4caf50" }}>
         Guardar Cambios
       </Button>
     </Box>
@@ -238,8 +244,8 @@ function DispensadorCrud() {
   return (
     <div>
       {/* CRUD Grupos */}
-      <h2>CRUD de Grupos</h2>
-      <Fab color="primary" aria-label="add" onClick={() => handleOpenModal("grupo")} style={{ marginBottom: "20px" }}>
+      <h2 style={{ fontFamily: "Poppins, sans-serif", color: "#4caf50" }}>CRUD de Grupos</h2>
+      <Fab color="primary" aria-label="add" onClick={() => handleOpenModal("grupo")} style={{ marginBottom: "20px", backgroundColor: "#72a7fc" }}>
         <AddIcon />
       </Fab>
       <CrudTable
@@ -263,8 +269,8 @@ function DispensadorCrud() {
       </Modal>
 
       {/* CRUD Dispensadores */}
-      <h2>CRUD de Dispensadores</h2>
-      <Fab color="primary" aria-label="add" onClick={() => handleOpenModal("dispensador")} style={{ marginBottom: "20px" }}>
+      <h2 style={{ fontFamily: "Poppins, sans-serif", color: "#4caf50" }}>CRUD de Dispensadores</h2>
+      <Fab color="primary" aria-label="add" onClick={() => handleOpenModal("dispensador")} style={{ marginBottom: "20px", backgroundColor: "#72a7fc" }}>
         <AddIcon />
       </Fab>
       <CrudTable
@@ -288,8 +294,8 @@ function DispensadorCrud() {
       </Modal>
 
       {/* CRUD Lados */}
-      <h2>CRUD de Lados</h2>
-      <Fab color="primary" aria-label="add" onClick={() => handleOpenModal("lado")} style={{ marginBottom: "20px" }}>
+      <h2 style={{ fontFamily: "Poppins, sans-serif", color: "#4caf50" }}>CRUD de Lados</h2>
+      <Fab color="primary" aria-label="add" onClick={() => handleOpenModal("lado")} style={{ marginBottom: "20px", backgroundColor: "#72a7fc" }}>
         <AddIcon />
       </Fab>
       <CrudTable
@@ -313,8 +319,8 @@ function DispensadorCrud() {
       </Modal>
 
       {/* CRUD Mangueras */}
-      <h2>CRUD de Mangueras</h2>
-      <Fab color="primary" aria-label="add" onClick={() => handleOpenModal("manguera")} style={{ marginBottom: "20px" }}>
+      <h2 style={{ fontFamily: "Poppins, sans-serif", color: "#4caf50" }}>CRUD de Mangueras</h2>
+      <Fab color="primary" aria-label="add" onClick={() => handleOpenModal("manguera")} style={{ marginBottom: "20px", backgroundColor: "#72a7fc" }}>
         <AddIcon />
       </Fab>
       <CrudTable
