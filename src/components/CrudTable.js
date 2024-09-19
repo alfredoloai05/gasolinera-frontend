@@ -51,13 +51,15 @@ function CrudTable({ columns, data, onEdit, onDelete, actions = [] }) {
             >
               {columns.map((col) => (
                 <TableCell key={col.field} sx={{ fontFamily: "Poppins, sans-serif" }}>
-                  {typeof row[col.field] === "object" && row[col.field] !== null
-                    ? row[col.field].nombre
-                    : col.field === "estado"
-                    ? row.estado
-                      ? "Disponible"
-                      : "Ocupado"
-                    : row[col.field]}
+                  {col.render
+                    ? col.render(row)
+                    : typeof row[col.field] === "object" && row[col.field] !== null
+                      ? row[col.field].nombre
+                      : col.field === "estado"
+                        ? row.estado
+                          ? "Disponible"
+                          : "Ocupado"
+                        : row[col.field]}
                 </TableCell>
               ))}
               <TableCell>

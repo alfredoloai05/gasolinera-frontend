@@ -18,6 +18,8 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
     direccion: "",
     telefono: "",
     tipo_identificacion: "C",
+    NumeroCuantia: "",
+    NumeroCuantiaChecked: false,
   });
 
   const webcamRef = useRef(null);
@@ -71,9 +73,20 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
       const response = await axios.get(`${config.apiUrl}/placa/${placa}/cliente`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      const { cedula, nombre, apellido } = response.data;
-      onDatosDetectados({ placa, cedula, nombre, apellido });
+  
+      const { cedula, nombre, apellido, NumeroCuantia, EntidadPublica, codigo, placas } = response.data;
+  
+      onDatosDetectados({
+        placa,
+        cedula,
+        nombre,
+        apellido,
+        NumeroCuantia: NumeroCuantia || "",
+        NumeroCuantiaChecked: !!NumeroCuantia,
+        EntidadPublica: EntidadPublica || false, // Asegúrate de manejar este caso
+        codigo: codigo || "", // Asegúrate de manejar este caso
+        placas: placas || [],
+      });
     } catch (error) {
       if (error.response && error.response.status === 404) {
         setPlacaDetectada(placa);
@@ -84,6 +97,8 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
       }
     }
   };
+  
+  
 
   const handleClienteChange = (e) => {
     setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value });
@@ -96,7 +111,6 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Cliente encontrado, asignar placa directamente
       const confirmar = window.confirm("Cliente encontrado. ¿Deseas asignar esta placa al cliente existente?");
       if (confirmar) {
         await asignarPlaca(nuevoCliente.cedula);
@@ -105,6 +119,9 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
           cedula: response.data.cedula,
           nombre: response.data.nombre,
           apellido: response.data.apellido,
+          NumeroCuantia: response.data.NumeroCuantia || "",
+          NumeroCuantiaChecked: !!response.data.NumeroCuantia,
+          placas: response.data.placas || [],
         });
         setOpenCreateModal(false);
         setCreandoCliente(false);
@@ -139,6 +156,9 @@ const Escaner = ({ onDatosDetectados, placaManual }) => {
         cedula: nuevoCliente.cedula,
         nombre: nuevoCliente.nombre,
         apellido: nuevoCliente.apellido,
+        NumeroCuantia: nuevoCliente.NumeroCuantia || "",
+        NumeroCuantiaChecked: !!nuevoCliente.NumeroCuantia,
+        placas: [],
       });
     } catch (error) {
       console.error("Error al crear cliente:", error);

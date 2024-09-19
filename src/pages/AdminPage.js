@@ -22,6 +22,7 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import PeopleIcon from "@mui/icons-material/People";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
+import GavelIcon from '@mui/icons-material/Gavel';
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import StoreMallDirectoryIcon from "@mui/icons-material/StoreMallDirectory";
@@ -37,6 +38,7 @@ import FormasPagoCrud from "./FormasPagoCrud";
 import DispensadorCrud from "./DispensadoresCrud";
 import PerchasCrud from "./PerchasCrud";
 import ProductosCrud from "./ProductosCrud";
+import SriPage from "./SriPage";
 
 const drawerWidth = 80; 
 
@@ -82,6 +84,7 @@ function AdminPage() {
           { text: "Perchas", icon: <StoreMallDirectoryIcon />, page: "Perchas" },
           { text: "Servicios", icon: <BuildIcon />, page: "Servicios" },
           { text: "Formas de Pago", icon: <PaymentIcon />, page: "FormasPago" },
+          { text: "Sri", icon: <GavelIcon />, page: "SriPage" },
         ].map((item) => (
           <Tooltip title={item.text} placement="right" key={item.text}>
             <ListItem
@@ -126,6 +129,8 @@ function AdminPage() {
         return <PerchasCrud />;
       case "Productos":
         return <ProductosCrud />;
+      case "SriPage":
+        return <SriPage />;
       default:
         return <AdministradoresCrud />;
     }

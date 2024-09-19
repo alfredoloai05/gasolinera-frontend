@@ -8,11 +8,13 @@ import {
   IconButton,
   Tooltip,
   MenuItem,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import LocalParkingIcon from "@mui/icons-material/LocalParking";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
-import config from '../config'; 
+import config from '../config';
 
 const style = {
   position: "absolute",
@@ -40,6 +42,8 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
     telefono: "",
     tipo_identificacion: "C",
     cedula: cedulaBuscar,
+    NumeroCuantia: "",
+    NumeroCuantiaChecked: false,
   });
   const [newPlaca, setNewPlaca] = useState({
     numero: "",
@@ -96,9 +100,14 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
       });
       setCliente(response.data);
       const placasCliente = await fetchPlacasByCliente(response.data.cedula);
-
-      onClienteEncontrado({ ...response.data, placas: placasCliente });
       
+      onClienteEncontrado({ 
+        ...response.data, 
+        placas: placasCliente, 
+        NumeroCuantia: response.data.NumeroCuantia || "", 
+        NumeroCuantiaChecked: !!response.data.NumeroCuantia 
+      });
+  
       if (placasCliente.length === 0) {
         handleOpenPlacasModal(response.data);
       }
@@ -112,7 +121,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
       }
     }
   };
-
+  
   const fetchPlacasByCliente = async (cedula) => {
     try {
       const response = await axios.get(`${config.apiUrl}/cliente/${cedula}/placas`, {
@@ -130,6 +139,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
     setNewCliente({ ...newCliente, cedula: cedulaBuscar });
     setOpenAddModal(true);
   };
+  
   const handleCloseAddModal = () => setOpenAddModal(false);
 
   const handleOpenPlacasModal = (cliente) => {
@@ -141,7 +151,7 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
 
   const handleAddClienteChange = (e) => {
     setNewCliente({ ...newCliente, [e.target.name]: e.target.value });
-  };
+  };  
 
   const handleAddClienteSubmit = async (e) => {
     e.preventDefault();
@@ -290,6 +300,35 @@ function VentaCliente({ cedulaInicial, onClienteEncontrado, onLimpiar }) {
             <MenuItem value="P">Pasaporte</MenuItem>
             <MenuItem value="R">RUC</MenuItem>
           </TextField>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={newCliente.NumeroCuantiaChecked}
+                onChange={(e) =>
+                  setNewCliente({
+                    ...newCliente,
+                    NumeroCuantiaChecked: e.target.checked,
+                    NumeroCuantia: e.target.checked ? newCliente.NumeroCuantia : "", // Limpia el campo si se desmarca
+                  })
+                }
+                name="NumeroCuantiaChecked"
+              />
+            }
+            label="Cuantía"
+          />
+
+          <TextField
+            label="Cuantía"
+            name="NumeroCuantia"
+            fullWidth
+            value={newCliente.NumeroCuantia}
+            onChange={handleAddClienteChange}
+            margin="normal"
+            disabled={!newCliente.NumeroCuantiaChecked} // Deshabilita si el checkbox no está marcado
+            sx={{ backgroundColor: 'white', borderRadius: 1 }}
+          />
+
           <Button type="submit" variant="contained" sx={{ mt: 2, backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}>
             Agregar
           </Button>

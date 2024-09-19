@@ -14,7 +14,8 @@ function Simulador({ venta, onSimulacionTerminada }) {
       setProgress((prevProgress) => {
         if (prevProgress >= 100) {
           clearInterval(interval);
-          onSimulacionTerminada(galones, total);
+          const iva = (total * 0.15).toFixed(2); // Calcula el 15% del total como IVA
+          onSimulacionTerminada(galones, total, iva);
           return 100;
         }
         const nuevosGalones = Number(galones) + Math.random() * 2;

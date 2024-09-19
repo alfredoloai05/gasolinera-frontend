@@ -33,7 +33,7 @@ import { useNavigate } from "react-router-dom";
 import GrupoOperador from "./GrupoOperador";
 import VentaArticuloOperador from "./VentaArticuloOperador";
 import DespachoOperador from "./DespachoOperador";
-import ClientesCrud from "./ClientesCrud";
+import ClientesCrud from "./ClientesCrudOperador";
 import Reportes from "./ReportesPage";
 import UltimaVenta from "./UltimasVentas";
 import axios from "axios";

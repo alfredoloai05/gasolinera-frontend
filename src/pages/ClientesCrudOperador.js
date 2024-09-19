@@ -507,36 +507,6 @@ function ClientesCrud() {
             margin="normal"
             disabled={!newCliente.NumeroCuantiaChecked} // Deshabilita si el checkbox no está marcado
           />
-
-          <TextField
-            label="Código"
-            name="codigo"
-            fullWidth
-            value={newCliente.codigo}
-            onChange={handleChange}
-            margin="normal"
-            disabled={!newCliente.EntidadPublica} // Deshabilita si "Entidad Pública" no está marcada
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={newCliente.DespachoSiNo}
-                onChange={(e) => setNewCliente({ ...newCliente, DespachoSiNo: e.target.checked })}
-                name="DespachoSiNo"
-              />
-            }
-            label="Despacho Si/No"
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={newCliente.EntidadPublica}
-                onChange={(e) => setNewCliente({ ...newCliente, EntidadPublica: e.target.checked })}
-                name="EntidadPublica"
-              />
-            }
-            label="Entidad Pública"
-          />
           <FormControlLabel
             control={
               <Checkbox
@@ -551,8 +521,6 @@ function ClientesCrud() {
             }
             label="Cuantía"
           />
-
-
           <Button
             type="submit"
             variant="contained"
@@ -661,43 +629,6 @@ function ClientesCrud() {
             margin="normal"
             disabled={!editCliente.NumeroCuantiaChecked} // Deshabilita si el checkbox no está marcado
           />
-
-          <TextField
-            label="Código"
-            name="codigo"
-            fullWidth
-            value={editCliente.codigo}
-            onChange={handleEditChange}
-            margin="normal"
-            disabled={!editCliente.EntidadPublica} // Deshabilita si "Entidad Pública" no está marcada
-          />
-
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={editCliente.DespachoSiNo}
-                onChange={(e) => setEditCliente({ ...editCliente, DespachoSiNo: e.target.checked })}
-                name="DespachoSiNo"
-              />
-            }
-            label="Despacho Si/No"
-          />
-
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={editCliente.EntidadPublica}
-                onChange={(e) => setEditCliente({
-                  ...editCliente,
-                  EntidadPublica: e.target.checked,
-                  codigo: e.target.checked ? editCliente.codigo : "", // Limpia el campo "codigo" si se desmarca
-                })}
-                name="EntidadPublica"
-              />
-            }
-            label="Entidad Pública"
-          />
-
           <FormControlLabel
             control={
               <Checkbox

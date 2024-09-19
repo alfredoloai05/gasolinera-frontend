@@ -14,15 +14,20 @@ import {
   InputLabel,
   IconButton,
   InputAdornment,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import SearchIcon from "@mui/icons-material/Search";
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import CheckIcon from '@mui/icons-material/Check';
+import GavelIcon from '@mui/icons-material/Gavel';
 import axios from "axios";
 import Simulador from "../components/Simulador";
 import Lados from "../components/Lados";
 import Escaner from "../components/Detector";
 import VentaCliente from "../components/VentaCliente";
-import config from '../config'; 
+import config from '../config';
 
 const getFechaActual = () => {
   return new Date().toISOString();
@@ -34,74 +39,58 @@ function DespachoOperador() {
   const [isMangueraModalOpen, setIsMangueraModalOpen] = useState(false);
   const [isEscanerModalOpen, setIsEscanerModalOpen] = useState(false);
   const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
+  const [isCuantiaModalOpen, setIsCuantiaModalOpen] = useState(false);
   const [selectedManguera, setSelectedManguera] = useState(null);
   const [selectedLado, setSelectedLado] = useState(null);
   const [clienteInfo, setClienteInfo] = useState({ nombre: "", apellido: "", placas: [] });
   const [formasPago, setFormasPago] = useState([]);
   const [servicios, setServicios] = useState([]);
+  const [sriPagos, setSriPagos] = useState([]);
   const [formData, setFormData] = useState({
     tipo_manguera: "",
     cedula_cliente: "",
     numero_placa: "",
-    servicio: "",
-    forma_pago: "",
+    servicio_id: "",
+    FormaPago_id: "",
+    SriPagos_id: "",
+    NumeroCuantia: "",
+    codigoVerificacion: "",
   });
+  const [sinPlaca, setSinPlaca] = useState(false);
+  const [codigoValidado, setCodigoValidado] = useState(false);
 
   useEffect(() => {
     cargarFormasPago();
     cargarServicios();
+    cargarSriPagos();
     cargarVentasActivas();
   }, []);
 
-  const cargarFormasPago = async () => {
+  const cargarFormasPago = async (despachoSiNo) => {
     try {
       const response = await axios.get(`${config.apiUrl}/formapagos`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      setFormasPago(response.data);
+      const formasFiltradas = despachoSiNo ? response.data : response.data.filter((p) => p.id === 1);
+      setFormasPago(formasFiltradas);
       setFormData((prevFormData) => ({
         ...prevFormData,
-        forma_pago: response.data[0]?.tipo || "",
+        FormaPago_id: formasFiltradas[0]?.id || "",
       }));
     } catch (error) {
       console.error("Error al cargar las formas de pago", error);
     }
   };
 
-  const terminarSimulacion = (id, galones, total) => {
-    setVentasActivas((prevVentas) =>
-      prevVentas.map((venta) =>
-        venta.id === id
-          ? { ...venta, galones, total, simulacionTerminada: true }
-          : venta
-      )
-    );
-  };
-
-  const finalizarVenta = async (id, galones, total) => {
+  const buscarCliente = async (cedula) => {
     try {
-      await axios.put(
-        `${config.apiUrl}/venta_gasolina/${id}/finalizar`,
-        { galones, total, fecha: new Date().toISOString() },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-      cargarVentasActivas();
+      const response = await axios.get(`${config.apiUrl}/cliente/cedula/${cedula}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      manejarDatosCliente(response.data);
     } catch (error) {
-      console.error("Error al finalizar la venta", error);
+      console.error("Error al buscar el cliente:", error);
     }
-  };
-
-  const abrirModalVenta = () => {
-    setFormData({
-      tipo_manguera: "",
-      cedula_cliente: "",
-      numero_placa: "",
-      servicio: servicios[0]?.tipo || "",
-      forma_pago: formasPago[0]?.tipo || "",
-    });
-    setSelectedManguera(null);
-    setSelectedLado(null);
-    setIsVentaModalOpen(true);
   };
 
   const cargarServicios = async () => {
@@ -112,10 +101,25 @@ function DespachoOperador() {
       setServicios(response.data);
       setFormData((prevFormData) => ({
         ...prevFormData,
-        servicio: response.data[0]?.tipo || "",
+        servicio_id: response.data[0]?.id || "",
       }));
     } catch (error) {
       console.error("Error al cargar los servicios", error);
+    }
+  };
+
+  const cargarSriPagos = async () => {
+    try {
+      const response = await axios.get(`${config.apiUrl}/sripagos`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      setSriPagos(response.data);
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        SriPagos_id: response.data[0]?.id || "",
+      }));
+    } catch (error) {
+      console.error("Error al cargar los pagos SRI", error);
     }
   };
 
@@ -130,10 +134,10 @@ function DespachoOperador() {
     }
   };
 
-  const iniciarVenta = async (ventaData) => {
+  const iniciarVenta = async () => {
     try {
       const id_operador = localStorage.getItem("id_operador");
-      const ventaConOperador = { ...ventaData, id_operador, fecha: getFechaActual() };
+      const ventaConOperador = { ...formData, id_operador, fecha: getFechaActual(), tipo_manguera: selectedManguera.tipo_combustible };
 
       const response = await axios.post(`${config.apiUrl}/venta_gasolina`, ventaConOperador, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -147,7 +151,6 @@ function DespachoOperador() {
         estado: true,
         simulacionTerminada: false,
         lado: selectedLado,
-        tipo_manguera: selectedManguera?.tipo_combustible,
       };
 
       setVentasActivas([...ventasActivas, nuevaVenta]);
@@ -157,16 +160,59 @@ function DespachoOperador() {
     }
   };
 
+  const finalizarVenta = async (id, galones, total, iva) => {
+    try {
+      await axios.put(
+        `${config.apiUrl}/venta_gasolina/${id}/finalizar`,
+        { galones, total, iva, fecha: getFechaActual() },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      cargarVentasActivas();
+    } catch (error) {
+      console.error("Error al finalizar la venta", error);
+    }
+  };
+
+  const terminarSimulacion = (id, galones, total, iva) => {
+    setVentasActivas((prevVentas) =>
+      prevVentas.map((venta) =>
+        venta.id === id
+          ? { ...venta, galones, total, iva, simulacionTerminada: true }
+          : venta
+      )
+    );
+  };
+
   const cerrarModalVenta = () => {
     setFormData({
       tipo_manguera: "",
       cedula_cliente: "",
       numero_placa: "",
-      servicio: servicios[0]?.tipo || "",
-      forma_pago: formasPago[0]?.tipo || "",
+      servicio_id: "",
+      FormaPago_id: "",
+      SriPagos_id: "",
+      NumeroCuantia: "",
+      codigoVerificacion: "",
     });
     setClienteInfo({ nombre: "", apellido: "", placas: [] });
+    setSinPlaca(false);
     setIsVentaModalOpen(false);
+  };
+
+  const abrirModalVenta = () => {
+    setFormData({
+      tipo_manguera: "",
+      cedula_cliente: "",
+      numero_placa: "",
+      servicio_id: servicios[0]?.id || "",
+      FormaPago_id: formasPago[0]?.id || "",
+      SriPagos_id: sriPagos[0]?.id || "",
+      NumeroCuantia: "",
+      codigoVerificacion: "",
+    });
+    setSelectedManguera(null);
+    setSelectedLado(null);
+    setIsVentaModalOpen(true);
   };
 
   const abrirEscanerYBuscarPlaca = () => {
@@ -177,28 +223,108 @@ function DespachoOperador() {
     setIsClienteModalOpen(true);
   };
 
-  const manejarDatosEscaner = ({ placa, cedula, nombre, apellido }) => {
+  const manejarDatosEscaner = ({ placa, cedula, nombre, apellido, NumeroCuantia, EntidadPublica, codigo, placas }) => {
+    // Log para ver los datos que devuelve el escáner
+    console.log("Datos del escáner:", {
+      placa,
+      cedula,
+      nombre,
+      apellido,
+      NumeroCuantia,
+      EntidadPublica,
+      codigo,
+      placas
+    });
+  
+    setClienteInfo({ nombre, apellido, placas, EntidadPublica, codigo });
     setFormData((prevFormData) => ({
       ...prevFormData,
       numero_placa: placa,
       cedula_cliente: cedula,
+      NumeroCuantia: NumeroCuantia || "",
     }));
-    setClienteInfo({ nombre, apellido, placas: [] });
+    validarServicioCliente({ EntidadPublica, NumeroCuantia });
     setIsEscanerModalOpen(false);
   };
+  
+  
 
   const manejarDatosCliente = (clienteData) => {
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      cedula_cliente: clienteData.cedula,
-      numero_placa: clienteData.placas.length > 0 ? clienteData.placas[0].numero : "",
-    }));
+    const clienteTienePlacas = clienteData.placas.length > 0;
     setClienteInfo({
       nombre: clienteData.nombre,
       apellido: clienteData.apellido,
       placas: clienteData.placas || [],
+      EntidadPublica: clienteData.EntidadPublica,
+      codigo: clienteData.codigo,
     });
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      cedula_cliente: clienteData.cedula,
+      numero_placa: clienteTienePlacas ? clienteData.placas[0].numero : "",
+      NumeroCuantia: clienteData.NumeroCuantia || "",
+    }));
+    cargarFormasPago(clienteData.DespachoSiNo);
+    validarServicioCliente(clienteData);
     setIsClienteModalOpen(false);
+  };
+
+  const validarServicioCliente = (clienteData) => {
+    const servicioSeleccionado = servicios.find((servicio) => servicio.id === formData.servicio_id);
+    
+    if (servicioSeleccionado.tipo === "Cuantia Domestica") {
+      if (!clienteData.NumeroCuantia) {
+        const confirmar = window.confirm("Este cliente no tiene una cuantía registrada. ¿Deseas agregarla?");
+        if (confirmar) {
+          setIsCuantiaModalOpen(true);
+        } else {
+          cambiarServicioAVentaNormal();
+        }
+      }
+    } else if ((servicioSeleccionado.tipo === "Calibracion" || servicioSeleccionado.tipo === "Calibracion con Dev") && !clienteData.EntidadPublica) {
+      alert("Este cliente no puede realizar la calibración.");
+      cambiarServicioAVentaNormal();
+    }
+  };
+  
+  const cambiarServicioAVentaNormal = () => {
+    if (servicios.find((servicio) => servicio.id === formData.servicio_id)?.tipo !== "Consumidor Final") {
+      const ventaNormal = servicios.find((servicio) => servicio.tipo === "Venta Normal");
+      setFormData((prevFormData) => ({ ...prevFormData, servicio_id: ventaNormal?.id || "" }));
+    }
+  };
+
+  const handleServicioChange = (e) => {
+    const servicioSeleccionado = servicios.find((servicio) => servicio.id === e.target.value);
+    setFormData({ ...formData, servicio_id: servicioSeleccionado.id });
+  
+    if (servicioSeleccionado.tipo === "Consumidor Final") {
+      setFormData({ ...formData, numero_placa: "ZZZ9999" });
+      setIsEscanerModalOpen(true);
+    }
+
+    if (servicioSeleccionado.tipo.includes("Calibracion")) {
+      setCodigoValidado(false);
+      if (!clienteInfo.EntidadPublica) {
+        alert("Este cliente no puede realizar la calibración.");
+        cambiarServicioAVentaNormal(); 
+      }
+    }
+  };
+
+
+  const actualizarCuantiaCliente = async (cuantia) => {
+    try {
+      await axios.put(
+        `${config.apiUrl}/cliente/${formData.cedula_cliente}`,
+        { NumeroCuantia: cuantia },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      setFormData((prevFormData) => ({ ...prevFormData, NumeroCuantia: cuantia }));
+      setIsCuantiaModalOpen(false);
+    } catch (error) {
+      console.error("Error al actualizar la cuantía del cliente:", error);
+    }
   };
 
   const handleChange = (e) => {
@@ -210,6 +336,27 @@ function DespachoOperador() {
     setSelectedLado(lado);
     setIsMangueraModalOpen(false);
   };
+
+  const handleSinPlacaChange = (e) => {
+    const checked = e.target.checked;
+    setSinPlaca(checked);
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      numero_placa: checked ? "ZZZ9999" : "",
+    }));
+  };
+
+
+  const validarCodigo = () => {
+    if (formData.codigoVerificacion === clienteInfo.codigo) {
+      setCodigoValidado(true);
+      alert("Código validado correctamente");
+    } else {
+      setCodigoValidado(false);
+      alert("Código incorrecto, intenta nuevamente.");
+    }
+  };
+
 
   return (
     <Box>
@@ -238,22 +385,20 @@ function DespachoOperador() {
               <Typography variant="body2">Placa: {venta.numero_placa}</Typography>
               <Typography variant="body2">Galones: {venta.galones}</Typography>
               <Typography variant="body2">Total: ${venta.total}</Typography>
-              <Typography variant="body2">
-                Fecha: {new Date(venta.fecha).toLocaleString()}
-              </Typography>
+              <Typography variant="body2">Fecha: {new Date(venta.fecha).toLocaleString()}</Typography>
             </CardContent>
             <CardActions>
               {!venta.simulacionTerminada && (
                 <Simulador
                   venta={venta}
-                  onSimulacionTerminada={(galones, total) =>
-                    terminarSimulacion(venta.id, galones, total)
+                  onSimulacionTerminada={(galones, total, iva) =>
+                    terminarSimulacion(venta.id, galones, total, iva)
                   }
                 />
               )}
               <Button
                 size="small"
-                onClick={() => finalizarVenta(venta.id, venta.galones, venta.total)}
+                onClick={() => finalizarVenta(venta.id, venta.galones, venta.total, venta.iva)}
                 disabled={!venta.simulacionTerminada}
                 sx={{ color: '#4caf50' }}
               >
@@ -275,13 +420,66 @@ function DespachoOperador() {
             Iniciar Nueva Venta {clienteInfo.nombre && `- ${clienteInfo.nombre} ${clienteInfo.apellido}`}
           </Typography>
 
-          <Button
-            variant="outlined"
-            onClick={() => setIsMangueraModalOpen(true)}
-            sx={{ mb: 2, borderColor: '#4caf50', color: '#4caf50', '&:hover': { borderColor: '#388e3c', color: '#388e3c' } }}
-          >
-            {selectedManguera ? `${selectedLado} - ${selectedManguera.tipo_combustible}` : "Seleccionar Manguera"}
-          </Button>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Servicio</InputLabel>
+            <Select
+              name="servicio_id"
+              value={formData.servicio_id}
+              onChange={handleServicioChange}
+            >
+              {servicios.map((servicio) => (
+                <MenuItem key={servicio.id} value={servicio.id}>
+                  {servicio.tipo}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Mostrar campo de cuantía si se selecciona "Cuantia Domestica" */}
+          {servicios.find((servicio) => servicio.id === formData.servicio_id)?.tipo === "Cuantia Domestica" && (
+            <TextField
+              label="Cuantía"
+              name="NumeroCuantia"
+              value={formData.NumeroCuantia}
+              onChange={(e) => setFormData({ ...formData, NumeroCuantia: e.target.value })}
+              fullWidth
+              margin="normal"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => actualizarCuantiaCliente(formData.NumeroCuantia)}>
+                      <ArrowForwardIcon sx={{ color: '#4caf50' }} />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+
+
+          {/* Mostrar campo de código si se selecciona "Calibracion" o "Calibracion con Dev" y el cliente es EntidadPublica */}
+          {(servicios.find((servicio) => servicio.id === formData.servicio_id)?.tipo === "Calibracion" ||
+            servicios.find((servicio) => servicio.id === formData.servicio_id)?.tipo === "Calibracion con Dev") &&
+            clienteInfo.EntidadPublica && (
+              <TextField
+                label="Código Verificación"
+                name="codigoVerificacion"
+                value={formData.codigoVerificacion}
+                onChange={(e) => setFormData({ ...formData, codigoVerificacion: e.target.value })}
+                fullWidth
+                margin="normal"
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={validarCodigo}>
+                        {codigoValidado ? <CheckIcon sx={{ color: '#4caf50' }} /> : <GavelIcon sx={{ color: '#4caf50' }} />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+            )}
 
           <TextField
             label="Cédula del Cliente"
@@ -338,40 +536,58 @@ function DespachoOperador() {
             />
           )}
 
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Servicio</InputLabel>
-            <Select
-              name="servicio"
-              value={formData.servicio}
-              onChange={handleChange}
-            >
-              {servicios.map((servicio) => (
-                <MenuItem key={servicio.id} value={servicio.tipo}>
-                  {servicio.tipo}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={sinPlaca}
+                onChange={handleSinPlacaChange}
+              />
+            }
+            label="Sin Placa"
+          />
 
           <FormControl fullWidth margin="normal">
             <InputLabel>Forma de Pago</InputLabel>
             <Select
-              name="forma_pago"
-              value={formData.forma_pago}
+              name="FormaPago_id"
+              value={formData.FormaPago_id}
               onChange={handleChange}
             >
               {formasPago.map((pago) => (
-                <MenuItem key={pago.id} value={pago.tipo}>
+                <MenuItem key={pago.id} value={pago.id}>
                   {pago.tipo}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Forma de Pago SRI</InputLabel>
+            <Select
+              name="SriPagos_id"
+              value={formData.SriPagos_id}
+              onChange={handleChange}
+            >
+              {sriPagos.map((pago) => (
+                <MenuItem key={pago.id} value={pago.id}>
+                  {pago.nombre}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Button
+            variant="outlined"
+            onClick={() => setIsMangueraModalOpen(true)}
+            sx={{ mb: 2, borderColor: '#4caf50', color: '#4caf50', '&:hover': { borderColor: '#388e3c', color: '#388e3c' } }}
+          >
+            {selectedManguera ? `${selectedLado} - ${selectedManguera.tipo_combustible}` : "Seleccionar Manguera"}
+          </Button>
+
           <Button
             variant="contained"
-            onClick={() => iniciarVenta({ ...formData, tipo_manguera: selectedManguera.tipo_combustible })}
-            disabled={!selectedManguera}
+            onClick={iniciarVenta}
+            disabled={!selectedManguera || (servicios.find(servicio => servicio.id === formData.servicio_id)?.tipo.includes("Calibracion") && !codigoValidado)} // No permite iniciar si no está validado
             sx={{ mt: 2, backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}
           >
             Iniciar Venta
@@ -419,3 +635,4 @@ const modalStyle = {
 };
 
 export default DespachoOperador;
+
