@@ -296,23 +296,31 @@ function DespachoOperador() {
 
   const handleServicioChange = (e) => {
     const servicioSeleccionado = servicios.find((servicio) => servicio.id === e.target.value);
-    setFormData({ ...formData, servicio_id: servicioSeleccionado.id });
   
     if (servicioSeleccionado.tipo === "Consumidor Final") {
-      setFormData({ ...formData, numero_placa: "ZZZ9999" });
-      setIsEscanerModalOpen(true);
+      // Mantener el servicio como "Consumidor Final" y abrir el escáner si es necesario
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        servicio_id: servicioSeleccionado.id,
+        numero_placa: "ZZZ9999", 
+      }));
+      abrirEscanerYBuscarPlaca();
+    } else {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        servicio_id: servicioSeleccionado.id
+      }));
     }
-
+  
     if (servicioSeleccionado.tipo.includes("Calibracion")) {
       setCodigoValidado(false);
       if (!clienteInfo.EntidadPublica) {
         alert("Este cliente no puede realizar la calibración.");
-        cambiarServicioAVentaNormal(); 
+        cambiarServicioAVentaNormal();
       }
     }
   };
-
-
+  
   const actualizarCuantiaCliente = async (cuantia) => {
     try {
       await axios.put(
