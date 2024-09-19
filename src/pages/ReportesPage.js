@@ -15,12 +15,12 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import html2pdf from "html2pdf.js";
-import config from '../config'; 
+import config from '../config';
 
 function Reportes() {
   const [reportType, setReportType] = useState("gasolina");
   const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [fecha, setFecha] = useState("");
   const [reportData, setReportData] = useState({ gasolina: [], productos: [] });
   const id_operador = localStorage.getItem("id_operador");
 
@@ -84,18 +84,17 @@ function Reportes() {
   }, [reportType, id_operador]);
 
   const handleGenerateReport = async () => {
-    if (!fromDate || !toDate) {
-      alert("Por favor, selecciona las fechas desde y hasta.");
+    if (!fecha) {
+      alert("Por favor, selecciona una fecha.");
       return;
     }
-
+  
     let url = "";
     let params = {
-      from_date: fromDate,
-      to_date: toDate,
+      fecha: fecha,  // Solo enviamos la fecha
       id_operador: id_operador,
     };
-
+  
     if (reportType === "gasolina") {
       url = `${config.apiUrl}/reporte_ventas_gasolina`;
       if (tipoManguera) params.tipo_manguera = tipoManguera;
@@ -104,11 +103,8 @@ function Reportes() {
     } else if (reportType === "productos") {
       url = `${config.apiUrl}/reporte_ventas_producto`;
       if (idEstante) params.id_estante = idEstante;
-    } else if (reportType === "total") {
-      await generateTotalReport();
-      return;
     }
-
+  
     try {
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -124,23 +120,21 @@ function Reportes() {
       alert("Ocurrió un error al generar el reporte.");
     }
   };
-
+  
   const generateTotalReport = async () => {
     try {
       const [gasolinaResponse, productosResponse] = await Promise.all([
         axios.get(`${config.apiUrl}/reporte_ventas_gasolina`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           params: {
-            from_date: fromDate,
-            to_date: toDate,
+            fecha: fecha,  // Solo enviamos la fecha
             id_operador: id_operador,
           },
         }),
         axios.get(`${config.apiUrl}/reporte_ventas_producto`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           params: {
-            from_date: fromDate,
-            to_date: toDate,
+            fecha: fecha,  // Solo enviamos la fecha
             id_operador: id_operador,
           },
         }),
@@ -153,7 +147,7 @@ function Reportes() {
       console.error("Error al obtener el reporte total", error);
       alert("Ocurrió un error al generar el reporte total.");
     }
-  };
+  };  
 
   const calcularTotalesGasolina = () => {
     if (!reportData.gasolina || !Array.isArray(reportData.gasolina)) return { numeroVentas: 0, totalVentas: 0 };
@@ -330,32 +324,17 @@ function Reportes() {
         </Select>
       </FormControl>
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Desde"
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{ shrink: true }}
-            sx={{ backgroundColor: 'white', borderRadius: 1 }}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Hasta"
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{ shrink: true }}
-            sx={{ backgroundColor: 'white', borderRadius: 1 }}
-          />
-        </Grid>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Fecha"
+          type="date"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          fullWidth
+          margin="normal"
+          InputLabelProps={{ shrink: true }}
+          sx={{ backgroundColor: 'white', borderRadius: 1 }}
+        />
       </Grid>
 
       {reportType === "gasolina" && (
