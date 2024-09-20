@@ -27,6 +27,7 @@ import Simulador from "../components/Simulador";
 import Lados from "../components/Lados";
 import Escaner from "../components/Detector";
 import VentaCliente from "../components/VentaCliente";
+import VentaDetalle from "../components/VentaDetalles";
 import config from '../config';
 
 const getFechaActual = () => {
@@ -58,6 +59,7 @@ function DespachoOperador() {
   });
   const [sinPlaca, setSinPlaca] = useState(false);
   const [codigoValidado, setCodigoValidado] = useState(false);
+  const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 
   useEffect(() => {
     cargarFormasPago();
@@ -235,7 +237,7 @@ function DespachoOperador() {
       codigo,
       placas
     });
-  
+
     setClienteInfo({ nombre, apellido, placas, EntidadPublica, codigo });
     setFormData((prevFormData) => ({
       ...prevFormData,
@@ -246,8 +248,8 @@ function DespachoOperador() {
     validarServicioCliente({ EntidadPublica, NumeroCuantia });
     setIsEscanerModalOpen(false);
   };
-  
-  
+
+
 
   const manejarDatosCliente = (clienteData) => {
     const clienteTienePlacas = clienteData.placas.length > 0;
@@ -271,7 +273,7 @@ function DespachoOperador() {
 
   const validarServicioCliente = (clienteData) => {
     const servicioSeleccionado = servicios.find((servicio) => servicio.id === formData.servicio_id);
-    
+
     if (servicioSeleccionado.tipo === "Cuantia Domestica") {
       if (!clienteData.NumeroCuantia) {
         const confirmar = window.confirm("Este cliente no tiene una cuantía registrada. ¿Deseas agregarla?");
@@ -286,7 +288,7 @@ function DespachoOperador() {
       cambiarServicioAVentaNormal();
     }
   };
-  
+
   const cambiarServicioAVentaNormal = () => {
     if (servicios.find((servicio) => servicio.id === formData.servicio_id)?.tipo !== "Consumidor Final") {
       const ventaNormal = servicios.find((servicio) => servicio.tipo === "Venta Normal");
@@ -296,13 +298,13 @@ function DespachoOperador() {
 
   const handleServicioChange = (e) => {
     const servicioSeleccionado = servicios.find((servicio) => servicio.id === e.target.value);
-  
+
     if (servicioSeleccionado.tipo === "Consumidor Final") {
       // Mantener el servicio como "Consumidor Final" y abrir el escáner si es necesario
       setFormData((prevFormData) => ({
         ...prevFormData,
         servicio_id: servicioSeleccionado.id,
-        numero_placa: "ZZZ9999", 
+        numero_placa: "ZZZ9999",
       }));
       abrirEscanerYBuscarPlaca();
     } else {
@@ -311,7 +313,7 @@ function DespachoOperador() {
         servicio_id: servicioSeleccionado.id
       }));
     }
-  
+
     if (servicioSeleccionado.tipo.includes("Calibracion")) {
       setCodigoValidado(false);
       if (!clienteInfo.EntidadPublica) {
@@ -320,7 +322,7 @@ function DespachoOperador() {
       }
     }
   };
-  
+
   const actualizarCuantiaCliente = async (cuantia) => {
     try {
       await axios.put(
@@ -376,6 +378,7 @@ function DespachoOperador() {
         {ventasActivas.map((venta) => (
           <Card
             key={venta.id}
+            onClick={() => setVentaSeleccionada(venta)} // Al hacer clic en la tarjeta, selecciona la venta
             sx={{
               width: 250,
               border: venta.simulacionTerminada ? "3px solid #4caf50" : "1px solid grey",
@@ -417,9 +420,19 @@ function DespachoOperador() {
         ))}
       </Box>
 
+      {/* Aquí renderizas el modal del componente VentaDetalle */}
+      {ventaSeleccionada && (
+        <VentaDetalle
+          venta={ventaSeleccionada}
+          onClose={() => setVentaSeleccionada(null)}
+          onActualizar={cargarVentasActivas} // Actualizar ventas activas después de realizar cambios
+        />
+      )}
+
       <Button variant="contained" onClick={abrirModalVenta} sx={{ backgroundColor: '#4caf50', color: 'white', '&:hover': { backgroundColor: '#388e3c' } }}>
         Iniciar Nueva Venta
       </Button>
+
 
       {/* Modal para iniciar nueva venta */}
       <Modal open={isVentaModalOpen} onClose={cerrarModalVenta}>

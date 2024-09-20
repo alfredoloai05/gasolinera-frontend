@@ -10,9 +10,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Grid,
-  Card,
-  CardContent,
 } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import axios from "axios";
@@ -65,10 +62,10 @@ function UltimasVentas() {
           <p><strong>Fecha:</strong> ${new Date(venta.fecha).toLocaleString()}</p>
           <p><strong>Tipo de Manguera:</strong> ${venta.tipo_manguera}</p>
           <p><strong>Número de Placa:</strong> ${venta.numero_placa}</p>
-          <p><strong>Servicio:</strong> ${venta.servicio}</p>
-          <p><strong>Forma de Pago:</strong> ${venta.forma_pago}</p>
           <p><strong>Galones:</strong> ${venta.galones}</p>
           <p><strong>Total:</strong> $${parseFloat(venta.total).toFixed(2)}</p>
+          <p><strong>IVA:</strong> $${parseFloat(venta.iva).toFixed(2)}</p>
+          <p><strong>Estado:</strong> ${venta.estado ? "Activa" : "Finalizada"}</p>
         </div>
       `;
 
@@ -104,7 +101,7 @@ function UltimasVentas() {
           pb: 1,
         }}
       >
-        Últimas 10 Ventas
+        Últimas Ventas
       </Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <TableContainer component={Paper} sx={{ boxShadow: 3, borderRadius: 2 }}>
@@ -114,10 +111,10 @@ function UltimasVentas() {
               <TableCell sx={{ color: "white", fontWeight: 600 }}>Tipo Manguera</TableCell>
               <TableCell sx={{ color: "white", fontWeight: 600 }}>Cédula Cliente</TableCell>
               <TableCell sx={{ color: "white", fontWeight: 600 }}>Placa</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: 600 }}>Servicio</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: 600 }}>Forma de Pago</TableCell>
               <TableCell sx={{ color: "white", fontWeight: 600 }}>Galones</TableCell>
               <TableCell sx={{ color: "white", fontWeight: 600 }}>Total</TableCell>
+              <TableCell sx={{ color: "white", fontWeight: 600 }}>IVA</TableCell>
+              <TableCell sx={{ color: "white", fontWeight: 600 }}>Estado</TableCell>
               <TableCell sx={{ color: "white", fontWeight: 600 }}>Fecha</TableCell>
               <TableCell sx={{ color: "white", fontWeight: 600 }}>Acciones</TableCell>
             </TableRow>
@@ -128,10 +125,10 @@ function UltimasVentas() {
                 <TableCell>{venta.tipo_manguera}</TableCell>
                 <TableCell>{venta.cedula_cliente}</TableCell>
                 <TableCell>{venta.numero_placa}</TableCell>
-                <TableCell>{venta.servicio}</TableCell>
-                <TableCell>{venta.forma_pago}</TableCell>
                 <TableCell>{venta.galones}</TableCell>
                 <TableCell>${parseFloat(venta.total).toFixed(2)}</TableCell>
+                <TableCell>${parseFloat(venta.iva).toFixed(2)}</TableCell>
+                <TableCell>{venta.estado ? "Activa" : "Finalizada"}</TableCell>
                 <TableCell>{new Date(venta.fecha).toLocaleString()}</TableCell>
                 <TableCell>
                   <Button

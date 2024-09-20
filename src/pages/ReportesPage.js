@@ -87,13 +87,13 @@ function Reportes() {
       alert("Por favor, selecciona una fecha.");
       return;
     }
-  
+
     let url = "";
     let params = {
       fecha: fecha,  // Solo enviamos la fecha
       id_operador: id_operador,
     };
-  
+
     if (reportType === "gasolina") {
       url = `${config.apiUrl}/reporte_ventas_gasolina`;
       if (tipoManguera) params.tipo_manguera = tipoManguera;
@@ -103,9 +103,9 @@ function Reportes() {
       url = `${config.apiUrl}/reporte_ventas_producto`;
       if (idEstante) params.id_estante = idEstante;
     } else if (reportType === "total") {
-      url = `${config.apiUrl}/reporte_final`; // Llamamos al nuevo endpoint
+      url = `${config.apiUrl}/reporte_final`;
     }
-  
+
     try {
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -123,7 +123,7 @@ function Reportes() {
       alert("Ocurrió un error al generar el reporte.");
     }
   };
-  
+
   const calcularTotalesGasolina = () => {
     if (!reportData.gasolina || !Array.isArray(reportData.gasolina)) return { numeroVentas: 0, totalVentas: 0 };
 
@@ -149,10 +149,10 @@ function Reportes() {
 
   const renderReportData = () => {
     if (!reportData) return null;
-  
+
     if (reportType === "gasolina") {
       const { numeroVentas = 0, totalVentas = 0 } = calcularTotalesGasolina();
-  
+
       return (
         <Box>
           <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
@@ -190,7 +190,7 @@ function Reportes() {
       );
     } else if (reportType === "productos") {
       const { numeroVentas = 0, totalVentas = 0 } = calcularTotalesProductos();
-  
+
       return (
         <Box>
           <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
@@ -229,24 +229,24 @@ function Reportes() {
     } else if (reportType === "total") {
       const gasolina = reportData.gasolina || {};
       const productos = reportData.productos || {};
-      
+
       const gasolinaVentasDia = gasolina.total_ventas_dia || { numero_ventas: 0, total_ventas: 0 };
       const productosVentasDia = productos.total_ventas_dia || { numero_ventas: 0, total_ventas: 0 };
       const ventasPorCombustible = gasolina.ventas_por_tipo_combustible || [];
       const ventasPorEstante = productos.ventas_por_estante || [];
-  
+
       return (
         <Box>
           <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
             Reporte Final
           </Typography>
-          
+
           {/* Reporte de Gasolina */}
           <Paper elevation={3} sx={{ p: 2, mt: 2, borderRadius: 2 }}>
             <Typography variant="subtitle1">Ventas de Gasolina (Total del Día)</Typography>
             <Typography><strong>Número de Ventas:</strong> {gasolinaVentasDia.numero_ventas}</Typography>
             <Typography><strong>Total de Ventas:</strong> ${gasolinaVentasDia.total_ventas.toFixed(2)}</Typography>
-            
+
             {/* Ventas por tipo de combustible */}
             {ventasPorCombustible.map((combustible, index) => (
               <Box key={index} sx={{ mt: 2 }}>
@@ -256,13 +256,13 @@ function Reportes() {
               </Box>
             ))}
           </Paper>
-          
+
           {/* Reporte de Productos */}
           <Paper elevation={3} sx={{ p: 2, mt: 2, borderRadius: 2 }}>
             <Typography variant="subtitle1">Ventas de Productos (Total del Día)</Typography>
             <Typography><strong>Número de Ventas:</strong> {productosVentasDia.numero_ventas}</Typography>
             <Typography><strong>Total de Ventas:</strong> ${productosVentasDia.total_ventas.toFixed(2)}</Typography>
-            
+
             {/* Ventas por estante */}
             {ventasPorEstante.map((estante, index) => (
               <Box key={index} sx={{ mt: 2 }}>
@@ -276,7 +276,7 @@ function Reportes() {
       );
     }
   };
-  
+
 
   const handleGeneratePDF = () => {
     const element = document.getElementById("reportContent");
@@ -420,9 +420,7 @@ function Reportes() {
         {reportData &&
           ((reportType === "gasolina" && reportData.gasolina.length > 0) ||
             (reportType === "productos" && reportData.productos.length > 0) ||
-            (reportType === "total" &&
-              ((reportData.gasolina && reportData.gasolina.length > 0) ||
-                (reportData.productos && reportData.productos.length > 0)))) && (
+            (reportType === "total" && reportData.gasolina && reportData.productos)) && (
             <Button
               variant="contained"
               color="secondary"
@@ -433,6 +431,7 @@ function Reportes() {
             </Button>
           )}
       </Box>
+
 
       <Box id="reportContent" sx={{ mt: 4 }}>
         {renderReportData()}
