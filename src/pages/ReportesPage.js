@@ -19,7 +19,6 @@ import config from '../config';
 
 function Reportes() {
   const [reportType, setReportType] = useState("gasolina");
-  const [fromDate, setFromDate] = useState("");
   const [fecha, setFecha] = useState("");
   const [reportData, setReportData] = useState({ gasolina: [], productos: [] });
   const id_operador = localStorage.getItem("id_operador");
@@ -103,6 +102,8 @@ function Reportes() {
     } else if (reportType === "productos") {
       url = `${config.apiUrl}/reporte_ventas_producto`;
       if (idEstante) params.id_estante = idEstante;
+    } else if (reportType === "total") {
+      url = `${config.apiUrl}/reporte_final`; // Llamamos al nuevo endpoint
     }
   
     try {
@@ -114,6 +115,8 @@ function Reportes() {
         setReportData({ ...reportData, gasolina: response.data });
       } else if (reportType === "productos") {
         setReportData({ ...reportData, productos: response.data });
+      } else if (reportType === "total") {
+        setReportData(response.data);  // Guardamos los datos del reporte final
       }
     } catch (error) {
       console.error("Error al obtener el reporte", error);
@@ -121,34 +124,6 @@ function Reportes() {
     }
   };
   
-  const generateTotalReport = async () => {
-    try {
-      const [gasolinaResponse, productosResponse] = await Promise.all([
-        axios.get(`${config.apiUrl}/reporte_ventas_gasolina`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          params: {
-            fecha: fecha,  // Solo enviamos la fecha
-            id_operador: id_operador,
-          },
-        }),
-        axios.get(`${config.apiUrl}/reporte_ventas_producto`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          params: {
-            fecha: fecha,  // Solo enviamos la fecha
-            id_operador: id_operador,
-          },
-        }),
-      ]);
-      setReportData({
-        gasolina: gasolinaResponse.data || [],
-        productos: productosResponse.data || [],
-      });
-    } catch (error) {
-      console.error("Error al obtener el reporte total", error);
-      alert("Ocurrió un error al generar el reporte total.");
-    }
-  };  
-
   const calcularTotalesGasolina = () => {
     if (!reportData.gasolina || !Array.isArray(reportData.gasolina)) return { numeroVentas: 0, totalVentas: 0 };
 
@@ -174,10 +149,10 @@ function Reportes() {
 
   const renderReportData = () => {
     if (!reportData) return null;
-
+  
     if (reportType === "gasolina") {
-      const { numeroVentas, totalVentas } = calcularTotalesGasolina();
-
+      const { numeroVentas = 0, totalVentas = 0 } = calcularTotalesGasolina();
+  
       return (
         <Box>
           <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
@@ -214,8 +189,8 @@ function Reportes() {
         </Box>
       );
     } else if (reportType === "productos") {
-      const { numeroVentas, totalVentas } = calcularTotalesProductos();
-
+      const { numeroVentas = 0, totalVentas = 0 } = calcularTotalesProductos();
+  
       return (
         <Box>
           <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
@@ -252,38 +227,56 @@ function Reportes() {
         </Box>
       );
     } else if (reportType === "total") {
-      const totalesGasolina = calcularTotalesGasolina();
-      const totalesProductos = calcularTotalesProductos();
-
+      const gasolina = reportData.gasolina || {};
+      const productos = reportData.productos || {};
+      
+      const gasolinaVentasDia = gasolina.total_ventas_dia || { numero_ventas: 0, total_ventas: 0 };
+      const productosVentasDia = productos.total_ventas_dia || { numero_ventas: 0, total_ventas: 0 };
+      const ventasPorCombustible = gasolina.ventas_por_tipo_combustible || [];
+      const ventasPorEstante = productos.ventas_por_estante || [];
+  
       return (
         <Box>
           <Typography variant="h6" sx={{ fontFamily: "Poppins, sans-serif", color: '#2e7d32', fontWeight: 'bold' }}>
-            Reporte Total de Ventas
+            Reporte Final
           </Typography>
-
+          
+          {/* Reporte de Gasolina */}
           <Paper elevation={3} sx={{ p: 2, mt: 2, borderRadius: 2 }}>
-            <Typography variant="subtitle1">Ventas de Gasolina</Typography>
-            <Typography>
-              <strong>Número de Ventas:</strong> {totalesGasolina.numeroVentas}
-            </Typography>
-            <Typography>
-              <strong>Total de Ventas:</strong> ${totalesGasolina.totalVentas.toFixed(2)}
-            </Typography>
+            <Typography variant="subtitle1">Ventas de Gasolina (Total del Día)</Typography>
+            <Typography><strong>Número de Ventas:</strong> {gasolinaVentasDia.numero_ventas}</Typography>
+            <Typography><strong>Total de Ventas:</strong> ${gasolinaVentasDia.total_ventas.toFixed(2)}</Typography>
+            
+            {/* Ventas por tipo de combustible */}
+            {ventasPorCombustible.map((combustible, index) => (
+              <Box key={index} sx={{ mt: 2 }}>
+                <Typography variant="subtitle1">Tipo de Combustible: {combustible.tipo_combustible}</Typography>
+                <Typography><strong>Número de Ventas:</strong> {combustible.numero_ventas}</Typography>
+                <Typography><strong>Total de Ventas:</strong> ${combustible.total_ventas.toFixed(2)}</Typography>
+              </Box>
+            ))}
           </Paper>
-
+          
+          {/* Reporte de Productos */}
           <Paper elevation={3} sx={{ p: 2, mt: 2, borderRadius: 2 }}>
-            <Typography variant="subtitle1">Ventas de Productos</Typography>
-            <Typography>
-              <strong>Número de Ventas:</strong> {totalesProductos.numeroVentas}
-            </Typography>
-            <Typography>
-              <strong>Total de Ventas:</strong> ${totalesProductos.totalVentas.toFixed(2)}
-            </Typography>
+            <Typography variant="subtitle1">Ventas de Productos (Total del Día)</Typography>
+            <Typography><strong>Número de Ventas:</strong> {productosVentasDia.numero_ventas}</Typography>
+            <Typography><strong>Total de Ventas:</strong> ${productosVentasDia.total_ventas.toFixed(2)}</Typography>
+            
+            {/* Ventas por estante */}
+            {ventasPorEstante.map((estante, index) => (
+              <Box key={index} sx={{ mt: 2 }}>
+                <Typography variant="subtitle1">Estante: {estante.nombre_estante}</Typography>
+                <Typography><strong>Número de Ventas:</strong> {estante.numero_ventas}</Typography>
+                <Typography><strong>Total de Ventas:</strong> ${estante.total_ventas.toFixed(2)}</Typography>
+              </Box>
+            ))}
           </Paper>
         </Box>
       );
     }
   };
+  
 
   const handleGeneratePDF = () => {
     const element = document.getElementById("reportContent");
