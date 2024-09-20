@@ -378,7 +378,6 @@ function DespachoOperador() {
         {ventasActivas.map((venta) => (
           <Card
             key={venta.id}
-            onClick={() => setVentaSeleccionada(venta)} // Al hacer clic en la tarjeta, selecciona la venta
             sx={{
               width: 250,
               border: venta.simulacionTerminada ? "3px solid #4caf50" : "1px solid grey",
@@ -388,7 +387,9 @@ function DespachoOperador() {
               boxShadow: 3,
             }}
           >
-            <CardContent>
+            <CardContent
+              onClick={() => setVentaSeleccionada(venta)} // Aquí va el onClick solo en el contenido, no en las acciones
+            >
               <Typography variant="h6" sx={{ color: '#388e3c', fontWeight: 'bold' }}>
                 {venta.lado} - {venta.tipo_manguera}
               </Typography>
@@ -409,7 +410,10 @@ function DespachoOperador() {
               )}
               <Button
                 size="small"
-                onClick={() => finalizarVenta(venta.id, venta.galones, venta.total, venta.iva)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Evita que se abra el modal cuando se hace clic en "Finalizar"
+                  finalizarVenta(venta.id, venta.galones, venta.total, venta.iva);
+                }}
                 disabled={!venta.simulacionTerminada}
                 sx={{ color: '#4caf50' }}
               >
@@ -419,6 +423,7 @@ function DespachoOperador() {
           </Card>
         ))}
       </Box>
+
 
       {/* Aquí renderizas el modal del componente VentaDetalle */}
       {ventaSeleccionada && (
